@@ -61,21 +61,33 @@ The plugin assumes `vurvey` is on your `$PATH`. Pick one:
 ### Homebrew (macOS / Linux)
 
 ```bash
-brew install Batterii/tap/vurvey
+brew install Batterii/vurvey/vurvey
+```
+
+This taps [`Batterii/homebrew-vurvey`](https://github.com/Batterii/homebrew-vurvey) and installs the signed binary from Vurvey's release storage.
+
+### Scoop (Windows)
+
+```powershell
+scoop bucket add vurvey https://github.com/Batterii/scoop-vurvey
+scoop install vurvey
+```
+
+### APT (Debian / Ubuntu)
+
+```bash
+curl -fsSL https://storage.googleapis.com/vurvey-cli-releases/apt/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/vurvey.gpg
+echo "deb [signed-by=/usr/share/keyrings/vurvey.gpg] https://storage.googleapis.com/vurvey-cli-releases/apt stable main" | sudo tee /etc/apt/sources.list.d/vurvey.list
+sudo apt update && sudo apt install vurvey
 ```
 
 ### Direct download
 
-Grab the latest binary for your platform from [vurvey-cli releases](https://github.com/Batterii/vurvey-cli/releases) and put it on your `$PATH`.
-
-### Build from source
-
-Requires Go 1.25+:
+Binaries for darwin / linux / windows (amd64 + arm64) plus `.deb` / `.rpm` packages are served from `https://storage.googleapis.com/vurvey-cli-releases/<version>/`. Each release is GPG-signed; SHA-256 checksums are at `checksums.txt`.
 
 ```bash
-git clone https://github.com/Batterii/vurvey-cli
-cd vurvey-cli
-make build
+curl -LO https://storage.googleapis.com/vurvey-cli-releases/v0.7.0/vurvey_0.7.0_darwin_arm64.tar.gz
+tar -xzf vurvey_0.7.0_darwin_arm64.tar.gz
 sudo mv vurvey /usr/local/bin/
 ```
 
@@ -154,7 +166,7 @@ The plugin's MCP config uses bare `vurvey` so it must be on `$PATH`. If installi
 
 ## Contributing
 
-Issues and pull requests welcome. See the [vurvey-cli repo](https://github.com/Batterii/vurvey-cli) for the MCP server source; this repo only carries the plugin manifest and workflow skill.
+Issues and pull requests welcome on this plugin repo. The MCP server source lives in `Batterii/vurvey-cli` (private — access for Vurvey staff / collaborators).
 
 ## License
 
