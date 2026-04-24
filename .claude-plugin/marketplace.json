@@ -10,7 +10,7 @@
     {
       "name": "vurvey",
       "description": "Vurvey CLI MCP server + workflow skill: 25 core-tier tools covering surveys, questions, answers, workflows, personas, brands, clips, files, plus read-only GraphQL escape hatch",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Batterii",
         "email": "engineering@batterii.com"

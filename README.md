@@ -4,26 +4,36 @@ Bring your [Vurvey](https://vurvey.com) workspace into your AI assistant. Ask Cl
 
 Works with **Claude Code**, **Claude Desktop**, **Cursor**, **OpenAI Codex CLI**, and any MCP-compatible client.
 
-## Quick install
+## Quick install (3 commands)
 
-1. Install the `vurvey` CLI:
-   ```bash
-   brew install Batterii/vurvey/vurvey
-   ```
-   (Or [APT / Scoop / direct download](docs/install.md#1-install-the-cli-binary).)
+```bash
+brew install Batterii/vurvey/vurvey
+vurvey login
+vurvey mcp install claude-desktop    # or: cursor | codex | all
+```
 
-2. Authenticate once:
-   ```bash
-   vurvey login
-   ```
+That's the full install. `vurvey mcp install` detects the client's config file, writes the correct MCP server entry with an absolute binary path (so GUI apps find it), and preserves any MCP servers you already had configured.
 
-3. Wire up your MCP client — **see the per-client guide in [`docs/install.md`](docs/install.md)**:
-   - [Claude Code](docs/install.md#claude-code) — two slash commands, plugin installs itself
-   - [Claude Desktop](docs/install.md#claude-desktop) — add a JSON snippet to `claude_desktop_config.json`
-   - [Cursor](docs/install.md#cursor) — add the same snippet to `.cursor/mcp.json`
-   - [Codex CLI](docs/install.md#codex-cli) — add a TOML section to `~/.codex/config.toml`
+**Claude Code users** — even simpler, install the plugin itself:
 
-4. Ask your assistant: *"List my Vurvey surveys."*
+```
+/plugin marketplace add Batterii/vurvey-claude-plugin
+/plugin install vurvey
+```
+
+More detail per client (config paths, multi-profile setup, troubleshooting): [`docs/install.md`](docs/install.md).
+
+### Try these prompts
+
+Once installed, ask your assistant things like:
+
+- *"List my Vurvey surveys."*
+- *"Show me the questions in survey X."*
+- *"Search Vurvey answers for mentions of 'onboarding' and summarize the sentiment."*
+- *"What personas do I have in this workspace, and who's a member of each?"*
+- *"Show me brand insights for Acme and pull the market-share data."*
+- *"Compare the response counts of my three most recent surveys."*
+- *"What workflows have run in the last week? Show me the latest history for each."*
 
 ## What you get
 

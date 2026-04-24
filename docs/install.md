@@ -2,12 +2,43 @@
 
 This plugin brings the Vurvey platform API into any MCP-compatible AI client as structured tool calls. The CLI binary (`vurvey`) runs the MCP server; the client connects over stdio.
 
+## TL;DR — three-command install
+
+For users on `vurvey` **v0.9.0 or newer**, this is the entire setup for Claude Desktop, Cursor, or Codex:
+
+```bash
+brew install Batterii/vurvey/vurvey
+vurvey login
+vurvey mcp install claude-desktop    # or: cursor | codex | all
+```
+
+That's it. `vurvey mcp install` writes the correct MCP server entry into the client's config file (JSON for Claude Desktop/Cursor, TOML for Codex), with an absolute path to the installed binary so GUI apps find it even with stripped `$PATH`. Existing MCP servers in the same file are preserved.
+
+**Claude Code users** skip the install command — install the plugin instead:
+
+```
+/plugin marketplace add Batterii/vurvey-claude-plugin
+/plugin install vurvey
+```
+
+Then restart your MCP client (or the relevant server entry) and chat normally. Try:
+
+- *"List my Vurvey surveys."*
+- *"Show me the answers to question X in survey Y and summarize the sentiment."*
+- *"What personas do I have in this workspace?"*
+
+If anything fails, keep reading — the per-client sections below cover troubleshooting, multi-profile setups, read-only mode, and the equivalent hand-edit config if you'd rather skip `vurvey mcp install`.
+
+---
+
+## The full story
+
 All clients share the same two prerequisites:
 
 1. **Install the CLI binary**
 2. **Authenticate once** with `vurvey login`
 
-Then follow the per-client section for your editor / chat app.
+Then either run `vurvey mcp install <client>` to auto-configure your client, or follow the per-client section for hand-editing the config yourself.
 
 ---
 
@@ -183,7 +214,15 @@ Or `/plugin marketplace update Batterii/vurvey-claude-plugin` to refresh the mar
 
 ## Claude Desktop
 
-Claude Desktop doesn't have a plugin system, so you add the MCP server manually to its config file.
+**Easiest path (v0.9.0+):**
+
+```bash
+vurvey mcp install claude-desktop
+```
+
+This writes the config for you with an absolute binary path, so you can skip the rest of this section unless you want to customize. Restart Claude Desktop afterward.
+
+**Hand-edit path:** if you prefer to write the config manually (or you're on a pre-v0.9.0 CLI), keep reading.
 
 ### Config file location
 
@@ -275,7 +314,15 @@ Chat as usual:
 
 ## Cursor
 
-Cursor supports MCP servers natively via its own `mcp.json` file — per-project or per-user (global).
+**Easiest path (v0.9.0+):**
+
+```bash
+vurvey mcp install cursor
+```
+
+Writes `~/.cursor/mcp.json` with an absolute binary path. Skip the rest of this section unless you want per-project config or need to customize.
+
+**Hand-edit path:** Cursor supports MCP servers natively via its own `mcp.json` file — per-project or per-user (global).
 
 ### Config file locations
 
@@ -322,7 +369,15 @@ Same issues as Claude Desktop generally apply. If Cursor's MCP panel shows a con
 
 ## Codex CLI
 
-OpenAI's Codex CLI supports MCP servers via a TOML config — slightly different shape from Claude Desktop / Cursor (which use JSON), but the same fields underneath.
+**Easiest path (v0.9.0+):**
+
+```bash
+vurvey mcp install codex
+```
+
+Writes `~/.codex/config.toml` for you with an absolute binary path. Skip the rest of this section unless you want to customize.
+
+**Hand-edit path:** Codex CLI supports MCP servers via a TOML config — slightly different shape from Claude Desktop / Cursor (which use JSON), but the same fields underneath.
 
 Requires **Codex CLI v0.124.0 or newer**. Check with `codex --version`.
 
