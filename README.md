@@ -161,7 +161,7 @@ The plugin's MCP config uses bare `vurvey` so it must be on `$PATH`. If installi
 
 ## Requirements
 
-- **`vurvey` CLI v0.7.0 or newer** (first version shipping the `mcp serve` subcommand)
+- **`vurvey` CLI v0.8.0 or newer** for the full 25-tool surface (v0.7.0 shipped the walking-skeleton 6 tools; v0.8.0 added the remaining 19 across questions, answers, workflows, personas, brands, clips, files)
 - A Vurvey workspace and account. Sign up at [vurvey.com](https://vurvey.com).
 
 ## Contributing

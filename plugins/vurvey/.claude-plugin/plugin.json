@@ -1,7 +1,7 @@
 {
   "name": "vurvey",
   "description": "Vurvey platform integration — exposes the vurvey CLI's MCP server and workflow guidance to Claude",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Batterii",
     "email": "engineering@batterii.com"

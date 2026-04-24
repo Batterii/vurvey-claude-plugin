@@ -9,8 +9,8 @@
   "plugins": [
     {
       "name": "vurvey",
-      "description": "Vurvey CLI MCP server + workflow skill: query surveys, responses, workflows, personas, and run read-only GraphQL from Claude",
-      "version": "0.1.0",
+      "description": "Vurvey CLI MCP server + workflow skill: 25 core-tier tools covering surveys, questions, answers, workflows, personas, brands, clips, files, plus read-only GraphQL escape hatch",
+      "version": "0.2.0",
       "author": {
         "name": "Batterii",
         "email": "engineering@batterii.com"
