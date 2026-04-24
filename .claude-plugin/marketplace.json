@@ -1,0 +1,27 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "vurvey",
+  "description": "Claude Code integrations for the Vurvey platform",
+  "owner": {
+    "name": "Batterii",
+    "email": "engineering@batterii.com"
+  },
+  "plugins": [
+    {
+      "name": "vurvey",
+      "description": "Vurvey CLI MCP server + workflow skill: query surveys, responses, workflows, personas, and run read-only GraphQL from Claude",
+      "version": "0.1.0",
+      "author": {
+        "name": "Batterii",
+        "email": "engineering@batterii.com"
+      },
+      "category": "productivity",
+      "source": {
+        "source": "github",
+        "repo": "Batterii/vurvey-claude-plugin"
+      },
+      "homepage": "https://github.com/Batterii/vurvey-claude-plugin",
+      "license": "MIT"
+    }
+  ]
+}
