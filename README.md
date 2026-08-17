@@ -251,27 +251,74 @@ To change tiers, edit `env` in the plugin's `mcp.json`:
 
 ## Troubleshooting
 
+Ask Claude first. It has a diagnostic playbook in its bundled skill and will walk you through this one step at a time. `/vurvey-update` checks whether the CLI and plugin are current, which is the cause often enough to be worth ruling out first.
+
+### Quick reference
+
 | What you see | What's wrong | Fix |
 |---|---|---|
-| Plugin installed, but no Vurvey tools | The CLI isn't installed — the plugin doesn't ship it | `which vurvey` is empty → do [step 1](#1-install-the-cli-and-log-in) |
+| Plugin installed, but no Vurvey tools at all | The CLI isn't installed — the plugin doesn't ship it | `which vurvey` empty → [step 1](#1-install-the-cli-and-log-in) |
+| `/mcp` doesn't list `vurvey` | Plugin components didn't load | [Reinstall the plugin](#reinstalling-the-plugin) |
+| A tool this README documents doesn't exist | CLI is behind — tools ship in CLI releases | `vurvey update`, then `/mcp restart vurvey` |
 | *"not authenticated"* on every call | No valid token | `vurvey login`, then `/mcp restart vurvey` |
-| *"Command not found: vurvey"* | Installed, but your client can't see it | Use an absolute path in the config: `/opt/homebrew/bin/vurvey` |
-| Server seems hung | — | Check `~/.config/vurvey/mcp.log`; stdout is reserved for protocol traffic |
-| *"refusing to start against non-Vurvey host"* | `api_url` isn't a Vurvey domain | Check `~/.config/vurvey/config.json` |
-| Claude refused to delete something | Deletes are off by default | See [What Claude can change](#what-claude-can-change) |
+| *"Command not found: vurvey"* | Installed, but the client can't see it on `$PATH` | Use an absolute path: `/opt/homebrew/bin/vurvey` |
+| **`Access denied: Invalid or expired auth token`** | Signed in against the wrong environment | `vurvey update` — see [below](#access-denied-invalid-or-expired-auth-token) |
+| Server seems hung | — | `~/.config/vurvey/mcp.log`; stdout is protocol traffic only |
+| *"refusing to start against non-Vurvey host"* | `api_url` isn't a Vurvey domain | `vurvey config get api-url` |
+| `vurvey_graphql_introspect` missing | Production disables introspection | Working as intended |
+| Claude refused to delete something | Deletes are off by default | [What Claude can change](#what-claude-can-change) |
+
+### Reinstalling the plugin
+
+A plain `/plugin install` is **not** sufficient. The marketplace listing is cached locally, so reinstalling can pull the same stale copy that caused the problem. Remove and re-add the marketplace:
+
+```
+/plugin marketplace remove vurvey
+/plugin marketplace add Batterii/vurvey-claude-plugin
+/plugin install vurvey
+```
+
+Then **start a new Claude Code session** — MCP servers connect at session start, so a newly installed server won't appear in your current one. `/reload-plugins` does not reconnect MCP servers. Confirm with `/mcp`.
+
+### `Access denied: Invalid or expired auth token`
+
+Nothing is expired. This means a token from one environment was presented to another, and the API rejected it on the signing key. The giveaway is that the login itself reported success immediately before the failure.
+
+It was caused by a bug in CLI versions before the fix: logging in with a `--api-url` override authenticated against the environment in the stored config (production by default on a fresh install) rather than the one being targeted. It bit hardest on first login with an isolated `XDG_CONFIG_HOME`, since that's exactly when no `api_url` is stored yet.
+
+```bash
+vurvey update
+```
+
+On an older binary, set the environment *before* logging in rather than during, which avoids the bug entirely:
+
+```bash
+vurvey login --profile staging
+vurvey --profile staging config set api-url https://api-staging.vurvey.dev
+```
 
 ---
 
 ## Working across environments
 
-If you use both staging and production, set up one profile each:
+Production, staging, and experimental are separate systems with separate accounts and separate data. An account in one does not exist in the others.
+
+| Environment | API URL |
+|---|---|
+| production | `https://api.vurvey.app` |
+| staging | `https://api-staging.vurvey.dev` |
+| experimental | `https://api-experimental.vurvey.dev` |
+
+Set up one profile per environment:
 
 ```bash
 vurvey login --profile staging
 vurvey login --profile prod
 ```
 
-Then add one MCP server entry per profile. Config snippets per client: [`docs/install.md`](docs/install.md).
+Then ask Claude to switch between them ("switch to the staging environment") — it uses `vurvey_environment_switch`, which changes the active profile for the session. The target profile must already have a completed login, or there is nothing to switch to.
+
+Prefer `--profile` over `--api-url` for anything involving credentials. Profiles keep each environment's URL and token together; `--api-url` only redirects a single command and is not persisted. Config snippets per client: [`docs/install.md`](docs/install.md).
 
 ---
 

@@ -10,7 +10,7 @@
     {
       "name": "vurvey",
       "description": "Vurvey CLI MCP server + workflow skill: 84 tools covering surveys, responses, workflows, capabilities, personas, brands, and chat, plus an escape hatch to any vurvey CLI command. Reads and writes enabled; deletes gated.",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "author": {
         "name": "Batterii",
         "email": "engineering@batterii.com"

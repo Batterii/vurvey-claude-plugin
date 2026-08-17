@@ -175,16 +175,129 @@ Two different gates apply, so be precise about which surface you're on:
 
 **"What brands do we cover, and how do they stack up?"** → `vurvey_brands_list`, then `vurvey_brands_insights` per brand, then `vurvey_brands_market_share` passing the brand name.
 
-## Authentication handling
+## Troubleshooting
 
-If a tool returns *"not authenticated with Vurvey. In your terminal, run: vurvey login"*:
+**Assume the user is not technical.** They are willing and capable of running whatever you give them, but they will not know what a `$PATH`, a config directory, or a Firebase project is, and they should not need to. So:
 
-- **Don't retry in a loop** — the tool cannot recover on its own.
-- **Surface the instruction verbatim.** The user must run it in a shell outside Claude.
-- For multi-profile setups, suggest `vurvey login --profile <name>` matching the profile the server was started with.
-- After login, Claude Code users run `/mcp restart vurvey` so the server picks up the refreshed config.
+- Give **one copy-pasteable block at a time**, then ask what it printed. Do not hand over a six-step script and hope.
+- Say what the command is for in plain words first ("this checks whether the Vurvey app is installed on your machine").
+- **Never ask them to edit JSON by hand** unless there is no alternative, and if there is none, give them the complete file contents rather than a description of the edit.
+- Do not explain the architecture unless they ask. They want it working.
+- Tell them plainly when a step needs their terminal rather than this chat. They cannot always tell the difference.
 
-The `/vurvey-login` slash command wraps this check.
+### Diagnose in this order
+
+Work top down and stop at the first thing that is wrong. Later symptoms are usually caused by earlier causes.
+
+**1. Are the Vurvey tools loaded at all?**
+
+If you cannot see any `vurvey_*` tools in this session, the problem is the plugin or the CLI, not the user's account. Ask them to run `/mcp` and tell you whether `vurvey` is listed and connected.
+
+- Not listed at all → the plugin's components did not load. Go to [Reinstalling the plugin](#reinstalling-the-plugin).
+- Listed but failed or disconnected → the CLI is missing or cannot start. Go to step 2.
+
+**2. Is the CLI installed?**
+
+The plugin is only configuration. It does not contain the Vurvey program, and it cannot install it. Have them run:
+
+```bash
+which vurvey
+```
+
+Empty output means it is not installed:
+
+```bash
+brew install Batterii/vurvey/vurvey
+vurvey login
+```
+
+If `which vurvey` prints a path but the server still will not start, the client cannot see it on its `$PATH`. Have them use that exact path in the MCP config `command` field (commonly `/opt/homebrew/bin/vurvey`).
+
+**3. Is the CLI new enough?**
+
+Tools ship in CLI releases, not plugin releases, so a tool described in this guide can be missing simply because the binary is old. This is the single most common cause of "that tool doesn't exist".
+
+```bash
+vurvey --version
+curl -s https://storage.googleapis.com/vurvey-cli-releases/latest
+```
+
+Behind → `vurvey update`, then `/mcp restart vurvey`. `/vurvey-update` runs this check for both the CLI and the plugin.
+
+**4. Are they logged in?**
+
+A tool returning *"not authenticated with Vurvey"* means there is no valid token.
+
+- **Do not retry the tool in a loop.** It cannot recover on its own.
+- Give them `vurvey login` and tell them it must be run in their **terminal**, not in this chat. You cannot log them in.
+- Then `/mcp restart vurvey` so the server picks up the new token.
+- `/vurvey-login` performs this check and reports back, so it is a good first thing to hand them.
+
+Tokens refresh automatically, so a user who logged in weeks ago normally stays logged in. Re-authentication is usually needed only after a password change or a long gap.
+
+### Environment problems (staging vs production)
+
+Vurvey has three environments: **production** (`api.vurvey.app`), **staging** (`api-staging.vurvey.dev`), and **experimental** (`api-experimental.vurvey.dev`). They are genuinely separate systems with separate accounts and separate data. An account in one does not exist in the others.
+
+Use `vurvey_environment_get` to see which one this session is pointed at, `vurvey_environments_list` for what is configured, and `vurvey_environment_switch` to change it. Switching works by **profile**: the target environment must already have a profile with a completed login, or the switch will fail with nothing to switch to.
+
+To set up a new environment, the user runs this in their terminal, once per environment:
+
+```bash
+vurvey login --profile staging
+```
+
+**If they report `Access denied: Invalid or expired auth token`,** and especially if it happened right after a login that appeared to succeed, this is a known bug in CLI versions before the fix landed. Signing in with a `--api-url` override authenticated against the wrong environment's identity system, producing a token the target environment correctly refused. It looks like an expired token but nothing is expired.
+
+The fix:
+
+```bash
+vurvey update
+```
+
+If they cannot update yet, this works on any version because it sets the environment before logging in rather than during:
+
+```bash
+vurvey login --profile staging
+vurvey --profile staging config set api-url https://api-staging.vurvey.dev
+```
+
+Do not tell them to retry the same failing login, and do not tell them their account is expired or broken. It is not.
+
+### Reinstalling the plugin
+
+When components are missing or the plugin is behaving oddly, a clean reinstall is the reliable fix. A plain `/plugin install` is **not** enough: the marketplace listing is cached locally, so reinstalling can pull the same stale copy that caused the problem. The marketplace has to be removed and re-added.
+
+Give these to the user one line at a time, in a Claude Code session:
+
+```
+/plugin marketplace remove vurvey
+/plugin marketplace add Batterii/vurvey-claude-plugin
+/plugin install vurvey
+```
+
+Then tell them to **start a new Claude Code session**. MCP servers connect at session start, so a newly installed server will not appear in the session they are currently in. `/reload-plugins` alone does not reconnect MCP servers.
+
+To confirm it worked, have them run `/mcp` and look for `vurvey` as connected.
+
+### Things that look broken but are not
+
+Do not send the user chasing any of these:
+
+- **`vurvey_graphql_introspect` is missing.** Production disables schema introspection, so the tool is not registered there. Expected. Do not send `__schema` or `__type` queries through `vurvey_graphql_query` either; they are rejected.
+- **A delete tool is missing.** Deletes are gated off by design. See [Changing things](#changing-things).
+- **"refusing to start against non-Vurvey host".** The configured API URL is not a Vurvey domain. This guard exists to stop credentials being sent somewhere they should not go. Have them run `vurvey config get api-url` and check it against the three environments above.
+- **A tool returns an empty list.** Usually a real empty result or the wrong workspace, not a failure. Check `vurvey_workspace_info` and offer `vurvey_workspaces_list` before treating it as a bug.
+
+### When you are genuinely stuck
+
+Say so, and give them the diagnostic to send their engineering contact rather than guessing further:
+
+```bash
+vurvey --version && vurvey config get api-url && vurvey status -o json
+```
+
+The MCP server's own log is at `~/.config/vurvey/mcp.log`. Only protocol traffic goes to stdout, so real errors land there. Never invent a cause you have not confirmed, and never tell a user their data is gone or their account is broken on the basis of a tool error.
 
 ## What this skill doesn't do
 
