@@ -2,7 +2,10 @@
   "mcpServers": {
     "vurvey": {
       "command": "vurvey",
-      "args": ["mcp", "serve"]
+      "args": ["mcp", "serve"],
+      "env": {
+        "VURVEY_MCP_TIER": "advanced"
+      }
     }
   }
 }

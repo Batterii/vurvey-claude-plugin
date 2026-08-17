@@ -1,111 +1,256 @@
 # Vurvey Claude Plugin
 
-Bring your [Vurvey](https://vurvey.com) workspace into your AI assistant. Ask Claude, Cursor, or Codex to list surveys, search answers, pull brand insights, run ad-hoc GraphQL, and more — all from a natural-language chat.
+Ask Claude about your Vurvey workspace in plain English.
 
-Works with **Claude Code**, **Claude Desktop**, **Cursor**, **OpenAI Codex CLI**, and any MCP-compatible client.
+> *"What surveys do we have open?"*
+> *"Search our answers for anything about onboarding and summarize the sentiment."*
+> *"Show me market share for Acme."*
+
+Works with **Claude Code**, **Claude Desktop**, **Cursor**, **Codex CLI**, and any MCP client.
+
+---
+
+## How it works
+
+Three pieces. The important thing to understand is that **your Vurvey login stays on your own machine** — Claude never sees your password, and Anthropic never receives your Vurvey token.
+
+```mermaid
+flowchart LR
+    You["👤 You<br/>chatting with Claude"]
+    Claude["🤖 Claude<br/>Code / Desktop / Cursor"]
+    CLI["⚙️ vurvey CLI<br/><i>runs on YOUR machine</i><br/>vurvey mcp serve"]
+    API["☁️ Vurvey API<br/>api.vurvey.app"]
+
+    You -->|"'list my surveys'"| Claude
+    Claude -->|"tool call<br/>(MCP over stdio)"| CLI
+    CLI -->|"GraphQL +<br/>your auth token"| API
+    API -->|"only YOUR<br/>workspace data"| CLI
+    CLI -->|"results"| Claude
+    Claude -->|"plain-English answer"| You
+
+    style CLI fill:#e8f4ff,stroke:#0969da,stroke-width:2px
+    style API fill:#fff4e6,stroke:#bf8700,stroke-width:2px
+```
+
+**This plugin is the wiring, not the engine.** It tells Claude *how to start* the `vurvey` CLI and *when to use* which tool. The CLI does the actual work. That is why you must install the CLI separately — see [Install](#install).
+
+### Where your login lives
+
+You log in once in your terminal. The CLI stores a Firebase token on disk and refreshes it automatically. Every tool call reuses that token.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor You
+    participant CLI as vurvey CLI<br/>(your machine)
+    participant FB as Firebase Auth<br/>(Google)
+    participant API as Vurvey API
+
+    Note over You,FB: One time — you run this in a terminal
+    You->>CLI: vurvey login
+    CLI->>FB: email + password, or Google sign-in
+    FB-->>CLI: ID token + refresh token
+    CLI->>CLI: save to ~/.config/vurvey/config.json
+
+    Note over You,API: Every time Claude uses a tool
+    You->>CLI: (via Claude) "list my surveys"
+    alt token expired
+        CLI->>FB: refresh token
+        FB-->>CLI: fresh ID token
+    end
+    CLI->>API: POST /graphql<br/>Authorization: Bearer your-id-token<br/>x-workspace-id: your-workspace
+    API-->>CLI: data you already have access to
+    CLI-->>You: (via Claude) answer
+```
+
+**What this means in practice:**
+
+| Question | Answer |
+|---|---|
+| Does Claude see my password? | No. You type it into the CLI in your own terminal. |
+| Does my Vurvey token get sent to Anthropic? | No. It goes from your machine straight to the Vurvey API. |
+| Can Claude see data I can't? | No. The API applies the same permissions as your account and workspace. |
+| Can Claude change things? | Yes — creating and updating are enabled so you can work without the web UI. Deleting is off unless you turn it on. See [What Claude can change](#what-claude-can-change). |
+| Do I need a Vurvey account? | Yes. This works against *your* workspace, so you need access to one. |
+
+---
 
 ## Install
 
-Every client needs the same two things first: the `vurvey` binary on your `$PATH`, and a logged-in session. This plugin is configuration — it tells your client how to launch the MCP server, but it does not ship or install the server itself.
+Two steps. Step 1 is the part people miss.
 
-### 1. Install the CLI and log in (all clients)
+### 1. Install the CLI and log in
 
 ```bash
 brew install Batterii/vurvey/vurvey
 vurvey login
 ```
 
-Not on Homebrew? See [`docs/install.md`](docs/install.md#1-install-the-cli-binary) for the install script, APT, RPM, Scoop, and direct-download options. Verify before continuing:
+Check it worked before moving on:
 
 ```bash
-vurvey --version    # needs v0.8.0 or newer
-vurvey me           # should print your account — if this fails, the plugin will too
+vurvey --version   # need v0.8.0 or newer
+vurvey me          # should print your account
 ```
 
-### 2. Wire it into your client
+If `vurvey me` fails, Claude will fail the same way — fix this first. Not a Homebrew user? The install script, APT, RPM, Scoop, and direct-download options are in [`docs/install.md`](docs/install.md#1-install-the-cli-binary).
 
-**Claude Code** — install the plugin:
+### 2. Connect it to your assistant
+
+**Claude Code:**
 
 ```
 /plugin marketplace add Batterii/vurvey-claude-plugin
 /plugin install vurvey
 ```
 
-Then run `/mcp` and confirm `vurvey` shows as connected, or `/vurvey-login` to check your auth state.
+Then run `/mcp` — you should see `vurvey` connected. Or run `/vurvey-login` and Claude will check your auth for you.
 
-**Claude Desktop, Cursor, Codex** — let the CLI write the config:
+**Claude Desktop, Cursor, Codex** — the CLI writes the config for you:
 
 ```bash
 vurvey mcp install claude-desktop    # or: cursor | codex | all
 ```
 
-This detects the client's config file, writes the MCP server entry with an absolute binary path (so GUI apps with a stripped `$PATH` still find it), and preserves any MCP servers you already had configured. Restart the client afterward.
+Restart the app afterward. This finds the right config file, uses an absolute path to the binary (GUI apps often can't see your shell's `$PATH`), and leaves any other MCP servers you have alone.
 
-More detail per client (config paths, multi-profile setup, troubleshooting): [`docs/install.md`](docs/install.md).
+Per-client detail, multi-profile setups, and troubleshooting: [`docs/install.md`](docs/install.md).
 
-### Try these prompts
+---
 
-Once installed, ask your assistant things like:
+## What you can ask
 
-- *"List my Vurvey surveys."*
-- *"Show me the questions in survey X."*
-- *"Search Vurvey answers for mentions of 'onboarding' and summarize the sentiment."*
-- *"What personas do I have in this workspace, and who's a member of each?"*
-- *"Show me brand insights for Acme and pull the market-share data."*
-- *"Compare the response counts of my three most recent surveys."*
-- *"What workflows have run in the last week? Show me the latest history for each."*
+84 tools covering surveys, responses, workflows, capabilities, personas, brands, and chat — plus an escape hatch to every other `vurvey` CLI command. You don't need to know any tool names. Just ask.
 
-## What you get
+**Explore**
+- *"What's in my Vurvey workspace?"* — one call gets you the whole picture
+- *"What surveys are open right now?"*
+- *"What personas do we have, and who's on each?"*
 
-**25 tools across 9 resource groups** in the default (read-only) tier:
+**Analyze**
+- *"Pull the responses to our Q1 research survey and summarize the main themes."*
+- *"Search all our answers for mentions of 'pricing' and tell me the sentiment."*
+- *"Compare response counts across my three most recent surveys."*
+
+**Get work done** (no web UI needed)
+- *"Run the weekly insights workflow and tell me when it finishes."*
+- *"Create a workflow from the competitive-analysis template."*
+- *"Switch me to the Acme workspace."*
+- *"Add these five people as contacts."*
+- *"Set the brand-tracking capability to run every Monday."*
+
+**Debug**
+- *"Why isn't the weekly insights workflow producing output?"*
+- *"Where did this chat answer get its sources from?"*
+
+### The escape hatch
+
+If no dedicated tool fits, Claude can call any `vurvey` CLI command directly through the `vurvey_cli` tool — billing, contacts, segments, training sets, people models, rewards, templates, transcripts, and the rest. So *"show me our billing status"* or *"list the segments in this workspace"* works even though there's no purpose-built tool for either.
+
+Claude discovers what's available the same way you would, by asking the CLI for `--help`.
+
+<details>
+<summary>Full tool list (84)</summary>
+
+**Read**
 
 | Group | Tools |
 |---|---|
-| Identity | `vurvey_whoami`, `vurvey_workspace_info` |
-| Surveys | `vurvey_surveys_list`, `vurvey_surveys_get` |
-| Questions | `vurvey_questions_list`, `vurvey_questions_get` |
-| Answers | `vurvey_answers_list`, `vurvey_answers_get`, `vurvey_answers_search` |
-| Workflows | `vurvey_workflows_list`, `vurvey_workflows_get`, `vurvey_workflows_history` |
-| Personas | `vurvey_personas_list`, `vurvey_personas_get`, `vurvey_personas_members` |
-| Brands | `vurvey_brands_list`, `vurvey_brands_get`, `vurvey_brands_insights`, `vurvey_brands_market_share` |
-| Media | `vurvey_clips_list`, `vurvey_clips_get`, `vurvey_files_get`, `vurvey_file_tags_list` |
-| GraphQL escape hatch | `vurvey_graphql_query` (read-only), `vurvey_graphql_introspect` |
+| Workspace | `workspace_overview`, `workspace_info`, `workspaces_list`, `whoami`, `environment_get`, `environments_list`, `cli` |
+| Surveys | `surveys_list`, `surveys_get`, `surveys_find_by_name` |
+| Questions | `questions_list`, `questions_get` |
+| Answers | `answers_list`, `answers_get`, `answers_search` |
+| Responses | `responses_list`, `responses_get`, `responses_export` |
+| Workflows | `workflows_list`, `workflows_get`, `workflows_status`, `workflows_history`, `workflows_history_entry` |
+| Workflow config | `workflow_templates_list/get`, `workflow_schedules_list/get`, `workflow_triggers_list/get`, `workflow_variables_list` |
+| Capabilities | `capabilities_list`, `capabilities_get`, `capabilities_pipeline_progress`, `capability_blueprints_list/get` |
+| Personas | `personas_list`, `personas_get`, `personas_members` |
+| Brands | `brands_list`, `brands_get`, `brands_insights`, `brands_market_share` |
+| Chat | `chat_list`, `chat_get`, `chat_message_grounding`, `chat_export_markdown` |
+| Media | `clips_list`, `clips_get`, `files_get`, `file_tags_list` |
+| GraphQL | `graphql_query` — queries always; mutations at `advanced`; delete-pattern mutations only at `destructive` |
 
-Advanced tools (mutations, deletes) are gated behind env vars and ship in a future release.
+**Write** (enabled by default)
 
-## Tiers
+| Group | Tools |
+|---|---|
+| Workflows | `workflows_create`, `workflows_create_auto`, `workflows_create_from_template`, `workflows_update`, `workflows_run`, `workflows_pause`, `workflows_resume`, `workflows_cancel`, `workflows_duplicate`, `workflows_clone_from_history` |
+| Workflow reports | `workflows_report_regenerate`, `workflows_report_update`, `workflows_report_share` |
+| Workflow config | `workflow_schedules_create/delete`, `workflow_triggers_add/update/remove`, `workflow_variables_create/activate/delete` |
+| Capabilities | `capabilities_create`, `capabilities_update`, `capabilities_activate`, `capabilities_quick_start`, `capabilities_deploy_from_blueprint`, `capabilities_add_workflow`, `capabilities_remove_workflow`, `capabilities_run_workflow`, `capabilities_set_schedule` |
+| Chat | `chat_send` |
+| Context | `workspace_switch`, `environment_switch` |
 
-The MCP server exposes tools in three cumulative tiers. Defaults to **core** (read + safe operations).
+All names are prefixed `vurvey_`. `graphql_introspect` appears only against environments that allow introspection — production disables it, so its absence there is expected.
 
-| Tier | How to unlock | Adds |
+</details>
+
+---
+
+## What Claude can change
+
+The plugin ships at the **advanced** tier so you can actually run your workspace from chat instead of switching to the web app. Reading and writing are on; deleting is not.
+
+| Tier | What you get | Setting |
 |---|---|---|
-| core | default | 25 read tools listed above |
-| advanced | `VURVEY_MCP_TIER=advanced` | mutations (create/update) — **future release** |
-| destructive | `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` **plus** `VURVEY_MCP_TIER=advanced` | deletes — **future release** |
+| core | 51 tools. Read-only — Claude can look, never touch. | `VURVEY_MCP_TIER=core` |
+| **advanced** *(default here)* | 84 tools. Everything above, plus create, update, run, schedule, and switch. | nothing to do |
+| destructive | Also allows deleting: workspaces, surveys, contacts, subscriptions. | add `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` |
 
-Set `VURVEY_MCP_READ_ONLY=1` to force read-only regardless of tier.
+**Why deletes are off.** Everything at `advanced` is recoverable — a workflow you didn't want can be paused, an edit can be re-edited. Deletes aren't. Since Claude is acting on an interpretation of what you asked, the one class of mistake worth a speed bump is the irreversible one. Turn it on if you need it; it's one line.
 
-## Multi-profile setups
+**What still protects you at `advanced`:** your client asks permission before every single tool call, and the API enforces your own account permissions — Claude cannot reach anything you couldn't reach yourself. Read the tool call before approving it, the same way you'd read a command before pasting it into a terminal.
 
-If you work across staging and production Vurvey environments, run `vurvey login --profile <name>` once per profile and wire one MCP server entry per profile. Config snippets for each client are in [`docs/install.md`](docs/install.md).
+To change tiers, edit `env` in the plugin's `mcp.json`:
 
-## Requirements
+```json
+{
+  "mcpServers": {
+    "vurvey": {
+      "command": "vurvey",
+      "args": ["mcp", "serve"],
+      "env": { "VURVEY_MCP_TIER": "advanced" }
+    }
+  }
+}
+```
 
-- **`vurvey` CLI v0.8.0 or newer** on `$PATH` for the full 25-tool surface
-- A Vurvey workspace and account — sign up at [vurvey.com](https://vurvey.com)
+---
 
 ## Troubleshooting
 
-Common issues live in the per-client sections of [`docs/install.md`](docs/install.md#common-issues-across-all-clients). The most frequent ones:
+| What you see | What's wrong | Fix |
+|---|---|---|
+| Plugin installed, but no Vurvey tools | The CLI isn't installed — the plugin doesn't ship it | `which vurvey` is empty → do [step 1](#1-install-the-cli-and-log-in) |
+| *"not authenticated"* on every call | No valid token | `vurvey login`, then `/mcp restart vurvey` |
+| *"Command not found: vurvey"* | Installed, but your client can't see it | Use an absolute path in the config: `/opt/homebrew/bin/vurvey` |
+| Server seems hung | — | Check `~/.config/vurvey/mcp.log`; stdout is reserved for protocol traffic |
+| *"refusing to start against non-Vurvey host"* | `api_url` isn't a Vurvey domain | Check `~/.config/vurvey/config.json` |
+| Claude refused to delete something | Deletes are off by default | See [What Claude can change](#what-claude-can-change) |
 
-- **Plugin installed but no Vurvey tools appear** → the CLI isn't installed. The plugin only tells your client to run `vurvey mcp serve`; it doesn't ship the binary. Run `which vurvey` — if that's empty, go back to [step 1](#1-install-the-cli-and-log-in-all-clients).
-- **"Not authenticated"** → run `vurvey login`, then restart the MCP server in your client.
-- **"Command not found: vurvey"** → the binary is installed but your client can't see it. Use an absolute path in your MCP config (`/opt/homebrew/bin/vurvey` on Apple Silicon). Your MCP client's `$PATH` at spawn time may differ from your shell's.
-- **Server hung** → check `~/.config/vurvey/mcp.log`. Only JSON-RPC goes to stdout; all diagnostics go to the log file.
+---
+
+## Working across environments
+
+If you use both staging and production, set up one profile each:
+
+```bash
+vurvey login --profile staging
+vurvey login --profile prod
+```
+
+Then add one MCP server entry per profile. Config snippets per client: [`docs/install.md`](docs/install.md).
+
+---
+
+## Requirements
+
+- `vurvey` CLI v0.8.0+ on `$PATH` (v0.17.x for the full 84-tool surface)
+- A Vurvey account and workspace — [vurvey.com](https://vurvey.com)
 
 ## Contributing
 
-Issues and pull requests welcome on this plugin repo. The MCP server source lives in `Batterii/vurvey-cli` (private — access for Vurvey staff / collaborators).
+Issues and PRs welcome here. The MCP server source lives in `Batterii/vurvey-cli` (private — Vurvey staff and collaborators).
 
 ## License
 

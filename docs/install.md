@@ -110,7 +110,7 @@ vurvey mcp serve --help
 # should list --tier, --read-only, --debug flags
 ```
 
-You need **v0.8.0 or newer** for the full 25-tool surface. Earlier versions either lack `vurvey mcp serve` entirely (pre-0.7.0) or expose only 6 tools (0.7.x).
+You need **v0.8.0 or newer**. v0.17.x exposes the full 84-tool surface; earlier versions either lack `vurvey mcp serve` entirely (pre-0.7.0) or expose far fewer tools.
 
 ---
 
@@ -160,7 +160,7 @@ Pick your client:
 
 ## Claude Code
 
-Claude Code has a first-class plugin system, so installation is two commands.
+Claude Code has a first-class plugin system, so wiring is two commands — but they only wire. You still need the binary from [step 1](#1-install-the-cli-binary) and a login from [step 2](#2-authenticate-once) first. If `which vurvey` is empty, the plugin will install fine and then have nothing to launch.
 
 ### Install
 
@@ -195,9 +195,9 @@ Just chat naturally. The bundled skill tells Claude when to reach for which tool
 
 Claude will use `vurvey_surveys_list`, `vurvey_personas_list`, `vurvey_answers_search`, `vurvey_brands_market_share` etc. as needed.
 
-### Unlock advanced tools (future)
+### Tiers: what Claude may change
 
-The default core tier is read + safe operations. When the advanced tier ships (mutations like creating surveys), you'll unlock it by editing the plugin's MCP config to add an env var. For now, no advanced tools exist.
+The plugin ships at the **advanced** tier: reads plus create, update, run, and schedule. Deletes are off. To go read-only instead, change `VURVEY_MCP_TIER` to `core` in the plugin's `mcp.json`; to allow deletes, add `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`. See the README's "What Claude can change" section.
 
 ### Update the plugin
 
@@ -490,14 +490,15 @@ Optional env vars:
 | Env var | Effect |
 |---|---|
 | `VURVEY_MCP_READ_ONLY=1` | Force read-only regardless of tier |
-| `VURVEY_MCP_TIER=advanced` | Unlock mutation tools (future release) |
-| `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` (+ `VURVEY_MCP_TIER=advanced`) | Unlock delete tools (future release) |
+| `VURVEY_MCP_TIER=advanced` | Mutation tools (create/update/run/schedule). This is the CLI default and what the Claude Code plugin pins. |
+| `VURVEY_MCP_TIER=core` | Read-only: 51 tools, no mutations |
+| `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` (+ advanced) | Delete tools |
 
 ---
 
 ## What tools you get
 
-25 tools across 9 resource groups:
+84 tools at the advanced tier (51 of them read-only). Full breakdown in the [README](../README.md#what-you-can-ask). Highlights:
 
 | Group | Tools |
 |---|---|
@@ -521,7 +522,9 @@ All tool names are prefixed `vurvey_` (e.g. `vurvey_surveys_list`). The full lis
 
 **"refusing to start MCP server against non-Vurvey host"** — your config's `api_url` isn't a recognized Vurvey domain. The MCP server hard-fails this (the CLI only warns) to prevent credential leakage. Check `~/.config/vurvey/config.json`.
 
-**"mutations are blocked in core tier"** — you (or the agent) sent a mutation via `vurvey_graphql_query`. Mutations land in a future advanced-tier release.
+**"mutations are blocked in core tier"** — the server is running at `core`. Set `VURVEY_MCP_TIER=advanced` in your MCP config's `env` block and restart the server.
+
+**"destructive operations require VURVEY_MCP_ALLOW_DESTRUCTIVE"** — deletes are gated on purpose. Add that env var only if you intend to let the assistant delete things.
 
 **Server appears hung** — check `~/.config/vurvey/mcp.log`. Stdout is reserved for JSON-RPC; all diagnostics go to the log file or stderr.
 
