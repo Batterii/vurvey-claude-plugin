@@ -118,6 +118,38 @@ Per-client detail, multi-profile setups, and troubleshooting: [`docs/install.md`
 
 ---
 
+## Staying up to date
+
+There are two moving parts, and they update separately.
+
+| | What it is | How to update |
+|---|---|---|
+| **CLI** | The binary that does the work. New *tools* ship here. | `vurvey update` (or `brew upgrade vurvey`) |
+| **Plugin** | The wiring and the skill. | `/plugin update vurvey` |
+
+**Run `/vurvey-update` any time** and Claude will check both, compare them against what's published, and tell you exactly what to run. If both are current it says so and stops.
+
+### Turn on auto-update for the plugin
+
+Add this to `~/.claude/settings.json`. It registers the marketplace *and* keeps it current, so you can skip `/plugin marketplace add` entirely:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "vurvey": {
+      "source": { "source": "github", "repo": "Batterii/vurvey-claude-plugin" },
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+This covers the plugin only — the CLI binary still updates on its own schedule. If a tool Claude expects is missing, the CLI is almost always what's behind, since tools ship in CLI releases rather than plugin releases.
+
+> Updating the plugin without refreshing the marketplace first can report "already up to date" when it isn't. `/plugin marketplace update Batterii/vurvey-claude-plugin` then `/plugin update vurvey`, or just let auto-update handle it.
+
+---
+
 ## What you can ask
 
 84 tools covering surveys, responses, workflows, capabilities, personas, brands, and chat — plus an escape hatch to every other `vurvey` CLI command. You don't need to know any tool names. Just ask.

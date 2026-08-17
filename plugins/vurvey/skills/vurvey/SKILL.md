@@ -108,6 +108,21 @@ The read tools are listed first, then the write tools under [Changing things](#c
 - **Don't prepend `vurvey`** — pass `["workspaces", "list"]`, not `["vurvey", "workspaces", "list"]`.
 - **Blocked regardless of tier:** `login`, `logout`, `mcp`, `graphql`, `config set`, `config profile`. Use `vurvey_graphql_query` for GraphQL and `vurvey_environment_switch` / `vurvey_workspace_switch` for context changes. If the user needs to log in, tell them to run `vurvey login` in their own terminal.
 
+### When a tool seems to be missing
+
+If the user asks for something this guide describes but you can't see the tool, the most likely cause is a stale CLI binary — tools ship in CLI releases, not plugin releases, so an old binary exposes an old tool set.
+
+Don't silently substitute a workaround. Check the version and say what you found:
+
+```bash
+vurvey --version
+curl -s https://storage.googleapis.com/vurvey-cli-releases/latest
+```
+
+If the installed version is behind, tell the user to run `vurvey update` and then `/mcp restart vurvey`. The `/vurvey-update` command does this check for both the CLI and the plugin.
+
+Two other causes worth ruling out before blaming the version: a delete-shaped tool is absent by design (see below), and `vurvey_graphql_introspect` is absent against production on purpose.
+
 ## Changing things
 
 Create, update, run, schedule, and switch are available. Deleting is not.
