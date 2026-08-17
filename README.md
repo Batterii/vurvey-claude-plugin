@@ -4,22 +4,42 @@ Bring your [Vurvey](https://vurvey.com) workspace into your AI assistant. Ask Cl
 
 Works with **Claude Code**, **Claude Desktop**, **Cursor**, **OpenAI Codex CLI**, and any MCP-compatible client.
 
-## Quick install (3 commands)
+## Install
+
+Every client needs the same two things first: the `vurvey` binary on your `$PATH`, and a logged-in session. This plugin is configuration — it tells your client how to launch the MCP server, but it does not ship or install the server itself.
+
+### 1. Install the CLI and log in (all clients)
 
 ```bash
 brew install Batterii/vurvey/vurvey
 vurvey login
-vurvey mcp install claude-desktop    # or: cursor | codex | all
 ```
 
-That's the full install. `vurvey mcp install` detects the client's config file, writes the correct MCP server entry with an absolute binary path (so GUI apps find it), and preserves any MCP servers you already had configured.
+Not on Homebrew? See [`docs/install.md`](docs/install.md#1-install-the-cli-binary) for the install script, APT, RPM, Scoop, and direct-download options. Verify before continuing:
 
-**Claude Code users** — even simpler, install the plugin itself:
+```bash
+vurvey --version    # needs v0.8.0 or newer
+vurvey me           # should print your account — if this fails, the plugin will too
+```
+
+### 2. Wire it into your client
+
+**Claude Code** — install the plugin:
 
 ```
 /plugin marketplace add Batterii/vurvey-claude-plugin
 /plugin install vurvey
 ```
+
+Then run `/mcp` and confirm `vurvey` shows as connected, or `/vurvey-login` to check your auth state.
+
+**Claude Desktop, Cursor, Codex** — let the CLI write the config:
+
+```bash
+vurvey mcp install claude-desktop    # or: cursor | codex | all
+```
+
+This detects the client's config file, writes the MCP server entry with an absolute binary path (so GUI apps with a stripped `$PATH` still find it), and preserves any MCP servers you already had configured. Restart the client afterward.
 
 More detail per client (config paths, multi-profile setup, troubleshooting): [`docs/install.md`](docs/install.md).
 
@@ -78,8 +98,9 @@ If you work across staging and production Vurvey environments, run `vurvey login
 
 Common issues live in the per-client sections of [`docs/install.md`](docs/install.md#common-issues-across-all-clients). The most frequent ones:
 
+- **Plugin installed but no Vurvey tools appear** → the CLI isn't installed. The plugin only tells your client to run `vurvey mcp serve`; it doesn't ship the binary. Run `which vurvey` — if that's empty, go back to [step 1](#1-install-the-cli-and-log-in-all-clients).
 - **"Not authenticated"** → run `vurvey login`, then restart the MCP server in your client.
-- **"Command not found: vurvey"** → use an absolute path in your MCP config (`/opt/homebrew/bin/vurvey` on Apple Silicon). Your MCP client's `$PATH` at spawn time may differ from your shell's.
+- **"Command not found: vurvey"** → the binary is installed but your client can't see it. Use an absolute path in your MCP config (`/opt/homebrew/bin/vurvey` on Apple Silicon). Your MCP client's `$PATH` at spawn time may differ from your shell's.
 - **Server hung** → check `~/.config/vurvey/mcp.log`. Only JSON-RPC goes to stdout; all diagnostics go to the log file.
 
 ## Contributing

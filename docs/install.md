@@ -14,7 +14,12 @@ vurvey mcp install claude-desktop    # or: cursor | codex | all
 
 That's it. `vurvey mcp install` writes the correct MCP server entry into the client's config file (JSON for Claude Desktop/Cursor, TOML for Codex), with an absolute path to the installed binary so GUI apps find it even with stripped `$PATH`. Existing MCP servers in the same file are preserved.
 
-**Claude Code users** skip the install command — install the plugin instead:
+**Claude Code users** still need the first two commands (the binary and the login). Only the third is different — install the plugin instead of running `vurvey mcp install`:
+
+```bash
+brew install Batterii/vurvey/vurvey
+vurvey login
+```
 
 ```
 /plugin marketplace add Batterii/vurvey-claude-plugin
