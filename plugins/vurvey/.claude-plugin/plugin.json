@@ -1,7 +1,7 @@
 {
   "name": "vurvey",
-  "description": "Vurvey platform integration \u2014 run your Vurvey workspace from chat via the vurvey CLI MCP server",
-  "version": "0.7.0",
+  "description": "Vurvey platform integration: read your Vurvey workspace from chat via the vurvey CLI MCP server. Ships read-only; writes and deletes are opt-in.",
+  "version": "0.8.0",
   "author": {
     "name": "Batterii",
     "email": "engineering@batterii.com"
