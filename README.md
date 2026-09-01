@@ -161,6 +161,11 @@ record behind it on **every single request**, with nothing cached in front of it
 makes ending the connection immediate rather than eventual, and it is why the token sitting in your
 client is not the thing you have to go and clean up.
 
+**An approval lasts 90 days.** Then it stops working, whether or not anything else changed, and the
+connection has to be approved again from scratch. **Connected apps** shows when each one expires.
+Nothing warns you first, so a connector that worked yesterday and refuses everything today has
+usually just reached that date.
+
 Vurvey keeps a record of every call the connector makes, including the ones it refuses, and rate
 limits a connector that calls too fast.
 
@@ -247,7 +252,7 @@ Reconnecting means approving again from scratch.
 | The approval screen says the workspace does not have the connector turned on | It is an entitlement on the workspace, not something you can switch on yourself | Ask your Vurvey contact |
 | The approval screen says your role does not allow anything that was asked for | Your role in that workspace has no ability the application requested | Ask a workspace administrator about your role |
 | Approving worked, then the browser failed to hand the code back | The local callback did not complete | Paste the full callback URL from your address bar into the prompt Claude Code shows |
-| Calls suddenly refused, nothing changed on your side | The connection was ended in Vurvey, or your membership or role changed | Check **Connected apps**, then approve again if you should still have it |
+| Calls suddenly refused, nothing changed on your side | Most often the 90 day expiry. Otherwise: the connection was ended in Vurvey, your membership or role changed, the workspace's connector was turned off, or Vurvey revoked it after an old token was replayed | Approve again, which covers all of them: `/mcp`, **vurvey**, **Authenticate**, or **Connect** on the connector |
 | Answers are about the wrong workspace | The address you added belongs to another workspace | Add the workspace you want as a second connector under its own name, see [Connecting more than one workspace](#connecting-more-than-one-workspace) |
 | No Vurvey tools at all in Claude Code | The plugin's marketplace listing is cached | `/plugin marketplace update Batterii/vurvey-claude-plugin`, `/plugin update vurvey`, then a new session |
 

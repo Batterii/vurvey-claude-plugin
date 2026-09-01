@@ -28,10 +28,12 @@ button are.
 Call `vurvey_whoami` and `vurvey_workspace_info`. Report the account and the workspace name in one
 line, so the user can tell at a glance whether it is the workspace they meant.
 
-If a call is refused, do not retry it in a loop. A refusal here usually means the connection was
-ended in Vurvey, or the user's membership or role in that workspace changed. Both take effect on
-the very next request. Send them to **Connected apps** to check, and tell them approving again is
-what restores it.
+If a call is refused, do not retry it in a loop. The most common cause is the 90 day expiry every
+approval carries, which arrives with nothing having changed on their side. After that: the
+connection was ended in Vurvey, their membership or role in that workspace changed, the workspace's
+connector was turned off, or Vurvey revoked it after an old token was replayed. All take effect on
+the very next request. Approving again covers every one of them, so give them that single step
+rather than sending them to work out which it was.
 
 ## 3. What it can do
 

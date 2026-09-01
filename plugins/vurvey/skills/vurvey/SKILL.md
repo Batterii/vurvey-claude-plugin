@@ -261,10 +261,16 @@ it: that is the **Authenticate** option in `/mcp`, or **Connect** on the connect
 
 **2. Is every call refused?**
 
-Most likely the connection was ended, or their membership or role in that workspace changed. Vurvey
-re-reads the approval on every request, so both take effect immediately. Send them to **Workspace
-settings**, **Connected apps** in Vurvey to see whether the connection is still there, and have
-them approve again if it should be.
+**Start with expiry.** An approval lasts 90 days and then stops working on its own, so "it worked
+last week and nothing changed" is the shape this arrives in. The other causes are the connection
+being ended in Vurvey, their membership or role in that workspace changing, the workspace's Claude
+connector being turned off, and Vurvey revoking the connection itself after an old refresh token
+was replayed. Vurvey re-reads the approval on every request, so all of them bite immediately.
+
+Approving again is the one action that covers every cause, so give them that first: `/mcp`,
+**vurvey**, **Authenticate** in Claude Code, or **Connect** on the connector elsewhere. Do not send
+them to **Connected apps** to work out which cause it was; an expired connection can still be
+listed there, so the list will not tell them.
 
 **3. Is one specific thing refused?**
 
