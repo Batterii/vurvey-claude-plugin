@@ -2,23 +2,25 @@
 
 This plugin brings the Vurvey platform API into any MCP-compatible AI client as structured tool calls. The CLI binary (`vurvey`) runs the MCP server; the client connects over stdio.
 
-## TL;DR — three-command install
+## TL;DR: the four-command install
 
-For users on `vurvey` **v0.9.0 or newer**, this is the entire setup for Claude Desktop, Cursor, or Codex:
+For users on `vurvey` **v0.19.1 or newer**, this is the entire setup for Claude Desktop, Cursor, or Codex:
 
 ```bash
 brew install Batterii/vurvey/vurvey
 vurvey login
+vurvey workspaces list && vurvey workspaces use <id>   # login does not pick one
 vurvey mcp install claude-desktop    # or: cursor | codex | all
 ```
 
-That's it. `vurvey mcp install` writes the correct MCP server entry into the client's config file (JSON for Claude Desktop/Cursor, TOML for Codex), with an absolute path to the installed binary so GUI apps find it even with stripped `$PATH`. Existing MCP servers in the same file are preserved.
+That's it. `vurvey mcp install` writes the correct MCP server entry into the client's config file (JSON for Claude Desktop/Cursor, TOML for Codex), with an absolute path to the installed binary so GUI apps find it even with stripped `$PATH`. Existing MCP servers in the same file are preserved. It writes no tier, so those clients run at the CLI default, which is `advanced`: reads plus writes. See [step 2b](#2b-select-a-workspace) for why the workspace command is not optional.
 
-**Claude Code users** still need the first two commands (the binary and the login). Only the third is different — install the plugin instead of running `vurvey mcp install`:
+**Claude Code users** still need the first three commands (the binary, the login, the workspace). Only the last is different: install the plugin instead of running `vurvey mcp install`:
 
 ```bash
 brew install Batterii/vurvey/vurvey
 vurvey login
+vurvey workspaces list && vurvey workspaces use <id>
 ```
 
 ```
@@ -38,10 +40,10 @@ If anything fails, keep reading — the per-client sections below cover troubles
 
 ## The full story
 
-All clients share the same two prerequisites:
+All clients share the same prerequisites:
 
 1. **Install the CLI binary**
-2. **Authenticate once** with `vurvey login`
+2. **Authenticate once** with `vurvey login`, then **select a workspace** with `vurvey workspaces use`
 
 Then either run `vurvey mcp install <client>` to auto-configure your client, or follow the per-client section for hand-editing the config yourself.
 
@@ -95,22 +97,26 @@ scoop install vurvey
 Binaries + `.deb` / `.rpm` packages are at `https://storage.googleapis.com/vurvey-cli-releases/<version>/`. Each is GPG-signed; SHA-256 checksums are in `checksums.txt`.
 
 ```bash
-curl -LO https://storage.googleapis.com/vurvey-cli-releases/v0.8.0/vurvey_0.8.0_darwin_arm64.tar.gz
-tar -xzf vurvey_0.8.0_darwin_arm64.tar.gz
+curl -LO https://storage.googleapis.com/vurvey-cli-releases/v0.19.2/vurvey_0.19.2_darwin_arm64.tar.gz
+tar -xzf vurvey_0.19.2_darwin_arm64.tar.gz
 sudo mv vurvey /usr/local/bin/
 ```
+
+`curl -s https://storage.googleapis.com/vurvey-cli-releases/latest` prints the current version tag if you want the newest rather than the pinned one above.
 
 ### Verify install
 
 ```bash
 vurvey --version
-# → vurvey version 0.8.0  (or newer)
+# → vurvey version 0.19.1  (or newer)
 
 vurvey mcp serve --help
 # should list --tier, --read-only, --debug flags
 ```
 
-You need **v0.8.0 or newer**. v0.17.x exposes the full 84-tool surface; earlier versions either lack `vurvey mcp serve` entirely (pre-0.7.0) or expose far fewer tools.
+You need **v0.19.1 or newer**. That is the release where the four delete-shaped tools (`workflow_schedules_delete`, `workflow_variables_delete`, `workflow_triggers_remove`, `capabilities_remove_workflow`) moved behind `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`. On any earlier binary they are registered at the `advanced` tier, so the delete opt-in gates nothing and "deletes are off" is not true of your install. Older versions also expose fewer tools, and anything before v0.7.0 has no `vurvey mcp serve` at all.
+
+Nothing warns you on a mismatch: the plugin does not check the binary's version, and MCP does not negotiate one, so an old CLI simply answers with a different tool set. If a tool these docs describe is missing from your client, check `vurvey --version` before assuming it is broken, then run `vurvey update` and restart the server.
 
 ---
 
@@ -121,6 +127,27 @@ vurvey login
 ```
 
 This opens a browser, runs Firebase OAuth, and caches your token at `$XDG_CONFIG_HOME/vurvey/config.json` (falls back to `~/.config/vurvey/config.json`). Tokens auto-refresh — you only need to re-run `vurvey login` when your refresh token is invalidated (usually after password changes or 60+ days of inactivity).
+
+### 2b. Select a workspace
+
+`vurvey login` authenticates you. It does **not** pick a workspace, and almost every tool is workspace-scoped, so this is a required second step rather than a preference:
+
+```bash
+vurvey workspaces list       # safe to run before one is selected
+vurvey workspaces use <id>   # writes workspace_id into the config
+```
+
+Skip it and the first real question fails like this:
+
+```
+API response: Variable "$workspaceId" got invalid value ""; Value is not a valid UUID:
+```
+
+Three things worth knowing:
+
+- The wrapper around that error says the tool's query may be out of sync with the schema and that a developer should look at it. That is a misread. Nothing is wrong with the tool.
+- The MCP server reads `workspace_id` once, at startup. After changing it, restart the server (`/mcp restart vurvey` in Claude Code, or a new session elsewhere) or the old value stays in effect.
+- `vurvey_workspaces_list` works with no workspace selected, so the assistant can show you the options. It cannot act on them for you at the `core` tier: `vurvey_workspace_switch` is an `advanced` tool and is not registered, and `vurvey_cli` refuses `workspaces use` as a non-read command.
 
 ### Verify auth
 
@@ -160,7 +187,7 @@ Pick your client:
 
 ## Claude Code
 
-Claude Code has a first-class plugin system, so wiring is two commands — but they only wire. You still need the binary from [step 1](#1-install-the-cli-binary) and a login from [step 2](#2-authenticate-once) first. If `which vurvey` is empty, the plugin will install fine and then have nothing to launch.
+Claude Code has a first-class plugin system, so wiring is two commands, but they only wire. You still need the binary from [step 1](#1-install-the-cli-binary), a login from [step 2](#2-authenticate-once), and a selected workspace from [step 2b](#2b-select-a-workspace) first. If `which vurvey` is empty, the plugin will install fine and then have nothing to launch. If no workspace is selected, it will launch and then fail your first real question.
 
 ### Install
 
@@ -197,7 +224,9 @@ Claude will use `vurvey_surveys_list`, `vurvey_personas_list`, `vurvey_answers_s
 
 ### Tiers: what Claude may change
 
-The plugin ships at the **advanced** tier: reads plus create, update, run, and schedule. Deletes are off. To go read-only instead, change `VURVEY_MCP_TIER` to `core` in the plugin's `mcp.json`; to allow deletes, add `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`. See the README's "What Claude can change" section.
+The plugin ships at the **core** tier: reads only. No tool it registers can create, update, run, or delete, and `vurvey_graphql_query` refuses mutations. To allow writes, set `VURVEY_MCP_TIER` to `advanced` in the plugin's `mcp.json`; to also allow deletes, add `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` on top. See the README's "What Claude can change" section, which also lists the client settings that switch off the per-call approval prompt you would otherwise be relying on at `advanced`.
+
+Note that `advanced` is the CLI's own default. This plugin's `env` block is the only reason it runs read-only, and a client configured by `vurvey mcp install` gets no such block.
 
 ### Update the plugin
 
@@ -490,15 +519,15 @@ Optional env vars:
 | Env var | Effect |
 |---|---|
 | `VURVEY_MCP_READ_ONLY=1` | Force read-only regardless of tier |
-| `VURVEY_MCP_TIER=advanced` | Mutation tools (create/update/run/schedule). This is the CLI default and what the Claude Code plugin pins. |
-| `VURVEY_MCP_TIER=core` | Read-only: 51 tools, no mutations |
-| `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` (+ advanced) | Delete tools |
+| `VURVEY_MCP_TIER=advanced` | 82 tools: reads plus create, update, run, schedule, switch, and arbitrary non-delete GraphQL mutations. **This is the CLI default**, so it is what you get when no `env` block is present. |
+| `VURVEY_MCP_TIER=core` | 53 tools, read-only, mutations rejected. This is what the Claude Code plugin pins. |
+| `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` (+ advanced) | 86 tools: adds the four delete tools and allows `deleteX` mutations |
 
 ---
 
 ## What tools you get
 
-84 tools at the advanced tier (51 of them read-only). Full breakdown in the [README](../README.md#what-you-can-ask). Highlights:
+53 read-only tools at the `core` tier the plugin ships, 82 at `advanced`, 86 with deletes enabled. Measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp serve`; add one to each against an environment that permits GraphQL introspection. Full breakdown and provenance in the [README](../README.md#what-claude-can-change). Highlights:
 
 | Group | Tools |
 |---|---|
@@ -510,7 +539,9 @@ Optional env vars:
 | Personas | `personas_list`, `personas_get`, `personas_members` |
 | Brands | `brands_list`, `brands_get`, `brands_insights`, `brands_market_share` |
 | Media | `clips_list`, `clips_get`, `files_get`, `file_tags_list` |
-| GraphQL | `graphql_query` (read-only), `graphql_introspect` |
+| GraphQL | `graphql_query` (queries at any tier; mutations at `advanced`; mutations whose field name starts with delete/remove/destroy only at `destructive`), `graphql_introspect` |
+
+**`vurvey_graphql_query` is not read-only.** It sends whatever GraphQL you hand it to the Vurvey API under your own credentials. At `core` it refuses mutations outright. At `advanced` it runs arbitrary mutations, and the only thing refused is a field name matching `delete|remove|destroy` followed by a capital letter. That is a regular expression over the query text, not a check against what the mutation actually does, so an `archiveX`, `disableX`, `purgeX`, or `resetX` mutation executes. It is one of the reasons the plugin ships at `core`.
 
 All tool names are prefixed `vurvey_` (e.g. `vurvey_surveys_list`). The full list with arguments is discoverable via each client's tool browser, or programmatically by sending a `tools/list` request.
 
@@ -522,7 +553,9 @@ All tool names are prefixed `vurvey_` (e.g. `vurvey_surveys_list`). The full lis
 
 **"refusing to start MCP server against non-Vurvey host"** — your config's `api_url` isn't a recognized Vurvey domain. The MCP server hard-fails this (the CLI only warns) to prevent credential leakage. Check `~/.config/vurvey/config.json`.
 
-**"mutations are blocked in core tier"** — the server is running at `core`. Set `VURVEY_MCP_TIER=advanced` in your MCP config's `env` block and restart the server.
+**"mutations require advanced tier"**: the server is running at `core`, which is what the Claude Code plugin ships, so this is expected rather than broken. Read [Tiers: what Claude may change](#tiers-what-claude-may-change) first, then set `VURVEY_MCP_TIER=advanced` in your MCP config's `env` block and restart the server if you do want writes.
+
+**`Variable "$workspaceId" got invalid value ""`**: no workspace is selected. Run `vurvey workspaces list`, then `vurvey workspaces use <id>`, then restart the server. See [2b. Select a workspace](#2b-select-a-workspace). The error's own wording suggests a schema problem in the tool; that is a misread.
 
 **"destructive operations require VURVEY_MCP_ALLOW_DESTRUCTIVE"** — deletes are gated on purpose. Add that env var only if you intend to let the assistant delete things.
 

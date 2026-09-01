@@ -11,9 +11,11 @@ The `vurvey` MCP server exposes the Vurvey platform API as structured tools. Use
 
 `vurvey_workspace_overview` is the cheapest way to orient. One call returns the user, the active workspace, the 5 most recent surveys, and the 5 most recent workflows. Prefer it over chaining `whoami` + `workspace_info` + `surveys_list` + `workflows_list` on the first turn.
 
-## Available tools (advanced tier, 84 tools)
+## Available tools (core tier as shipped, 53 tools)
 
-The plugin pins `VURVEY_MCP_TIER=advanced`: all reads, plus create / update / run / schedule. Deletes are gated behind `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` and are **not** available by default.
+The plugin pins `VURVEY_MCP_TIER=core`: reads only. The write tools under [Changing things](#changing-things) are **not registered** unless the user has set `VURVEY_MCP_TIER=advanced` themselves, and the four delete tools need `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` on top of that.
+
+Do not assume a tier. Go by the tools you can actually see: if a write tool is absent, the server is at `core`, and the right response is to tell the user how to opt in rather than to look for a workaround.
 
 The read tools are listed first, then the write tools under [Changing things](#changing-things).
 
@@ -96,7 +98,7 @@ The read tools are listed first, then the write tools under [Changing things](#c
 
 | Tool | Purpose |
 |---|---|
-| `vurvey_graphql_query` | Arbitrary GraphQL operation. Queries always allowed; mutations allowed at this tier; delete-pattern mutations (`deleteX`/`removeX`/`destroyX`) rejected. Subscriptions unsupported. |
+| `vurvey_graphql_query` | Arbitrary GraphQL operation. Queries always allowed. Mutations rejected at `core`, which is the shipped tier; allowed at `advanced` except for delete-pattern field names (`deleteX`/`removeX`/`destroyX`), which need `destructive`. Subscriptions unsupported. |
 
 `vurvey_graphql_introspect` registers only when the target API allows introspection. Production has it disabled, so against production the tool is absent by design — don't tell the user it's broken. Don't send `__schema` / `__type` queries through `vurvey_graphql_query` either; they're rejected.
 
@@ -106,7 +108,8 @@ The read tools are listed first, then the write tools under [Changing things](#c
 
 - **Discover before guessing:** call with `args: ["<resource>", "--help"]` (e.g. `["billing", "--help"]`) to see real subcommands and flags. Don't invent flags.
 - **Don't prepend `vurvey`** — pass `["workspaces", "list"]`, not `["vurvey", "workspaces", "list"]`.
-- **Blocked regardless of tier:** `login`, `logout`, `mcp`, `graphql`, `config set`, `config profile`. Use `vurvey_graphql_query` for GraphQL and `vurvey_environment_switch` / `vurvey_workspace_switch` for context changes. If the user needs to log in, tell them to run `vurvey login` in their own terminal.
+- **Refused at `core`, which is the shipped tier:** every non-read subcommand, with "non-read command requires advanced tier". That includes `workspaces use`, so you cannot change the active workspace for the user; give them the terminal command instead.
+- **Blocked regardless of tier:** `login`, `logout`, `mcp`, `graphql`, `config set`, `config profile`. Use `vurvey_graphql_query` for GraphQL. Context changes go through `vurvey_environment_switch` / `vurvey_workspace_switch`, which are `advanced` tools and absent at `core`. If the user needs to log in, tell them to run `vurvey login` in their own terminal.
 
 ### When a tool seems to be missing
 
@@ -125,13 +128,15 @@ Two other causes worth ruling out before blaming the version: a delete-shaped to
 
 ## Changing things
 
-Create, update, run, schedule, and switch are available. Deleting is not.
+**None of this is available on the tier the plugin ships.** At `core` the write tools below are not registered at all, `vurvey_cli` refuses every non-read subcommand, and `vurvey_graphql_query` refuses every mutation. The table is here so you can tell the user exactly what turning writes on would give them, not so you can attempt it.
 
-Two different gates apply, so be precise about which surface you're on:
+To opt in, the user sets `VURVEY_MCP_TIER=advanced` in the plugin's `mcp.json` `env` block and restarts the server. Point them at the README's "What Claude can change" section before they do, because it lists the client settings that switch off the per-call approval prompt they would then be relying on.
 
-- **Dedicated tools:** the delete-shaped ones (`vurvey_workflow_schedules_delete`, `vurvey_workflow_variables_delete`, `vurvey_workflow_triggers_remove`, `vurvey_capabilities_remove_workflow`) are not registered unless `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`. If you can't see a tool, it's off.
-- **`vurvey_cli` escape hatch:** `delete`, `delete-many`, `revert`, `deactivate`, and `cancel` subcommands are refused at this tier even though the equivalent dedicated tool may exist.
-- **`vurvey_graphql_query`:** `deleteX` / `removeX` / `destroyX` mutations are refused.
+Three separate gates apply, so be precise about which surface you're on:
+
+- **Dedicated write tools:** not registered below `advanced`. The delete-shaped ones (`vurvey_workflow_schedules_delete`, `vurvey_workflow_variables_delete`, `vurvey_workflow_triggers_remove`, `vurvey_capabilities_remove_workflow`) additionally need `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`. If you can't see a tool, it's off.
+- **`vurvey_cli` escape hatch:** at `core` every non-read subcommand is refused with "non-read command requires advanced tier". At `advanced`, `delete`, `delete-many`, `revert`, `deactivate`, and `cancel` stay refused.
+- **`vurvey_graphql_query`:** mutations refused at `core`; `deleteX` / `removeX` / `destroyX` refused at `advanced` too.
 
 | Intent | Tools |
 |---|---|
@@ -142,7 +147,7 @@ Two different gates apply, so be precise about which surface you're on:
 | Automate | `vurvey_workflow_schedules_create`, `vurvey_workflow_triggers_add`, `vurvey_workflow_triggers_update`, `vurvey_workflow_variables_create`, `vurvey_workflow_variables_activate` |
 | Capabilities | `vurvey_capabilities_create`, `vurvey_capabilities_update`, `vurvey_capabilities_activate`, `vurvey_capabilities_quick_start`, `vurvey_capabilities_deploy_from_blueprint`, `vurvey_capabilities_add_workflow`, `vurvey_capabilities_run_workflow`, `vurvey_capabilities_set_schedule` |
 | Chat | `vurvey_chat_send` |
-| Context | `vurvey_workspace_switch`, `vurvey_environment_switch` (session-only; neither persists to the config file) |
+| Context | `vurvey_workspace_switch`, `vurvey_environment_switch` (session-only; neither persists to the config file, so a restart reverts to whatever `vurvey workspaces use` set) |
 
 **How to behave when writing:**
 
@@ -150,6 +155,7 @@ Two different gates apply, so be precise about which surface you're on:
 - **Say what you're about to do** in one line before a create/update/run, especially when the user's phrasing was ambiguous.
 - **Don't chain writes speculatively.** Do the one thing asked, report the result, then continue.
 - **Check `vurvey_workflows_status` before starting a run** that may already be in flight.
+- **A write request at `core` is not a failure to route around either.** Say the plugin ships read-only, name the one line that changes it (`VURVEY_MCP_TIER=advanced`), and stop. Trying the same write through `vurvey_cli` or `vurvey_graphql_query` is both refused and the wrong instinct.
 - **A delete request is not a failure to route around.** Tell the user deletes are disabled and that they can enable them with `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`, or do it in the web app. Do not attempt the same delete through `vurvey_cli` or `vurvey_graphql_query` — those are gated too, and working around a safety gate is not something to do on the user's behalf.
 
 ## Picking the right tool
@@ -288,6 +294,19 @@ Do not send the user chasing any of these:
 - **A delete tool is missing.** Deletes are gated off by design. See [Changing things](#changing-things).
 - **"refusing to start against non-Vurvey host".** The configured API URL is not a Vurvey domain. This guard exists to stop credentials being sent somewhere they should not go. Have them run `vurvey config get api-url` and check it against the three environments above.
 - **A tool returns an empty list.** Usually a real empty result or the wrong workspace, not a failure. Check `vurvey_workspace_info` and offer `vurvey_workspaces_list` before treating it as a bug.
+- **A write tool is missing.** The plugin ships at `core`. See [Changing things](#changing-things). Do not report it as a stale binary.
+
+### The one error that lies to you
+
+`Variable "$workspaceId" got invalid value ""; Value is not a valid UUID` means **no workspace is selected**, not that the tool is broken. The wrapper around it says the query may be out of sync with the schema and that a developer should look at it. Ignore that wording; it is wrong for this case, and repeating it sends the user to their engineering contact for a two-command fix.
+
+`vurvey login` does not select a workspace, so a fresh install hits this on the first real question. Run `vurvey_workspaces_list` (it works with no workspace set) to show the options, then tell the user to run this in their own terminal and restart the server:
+
+```bash
+vurvey workspaces use <id>
+```
+
+You cannot do it for them at `core`: `vurvey_workspace_switch` is an `advanced` tool and is not registered, and `vurvey_cli` refuses `workspaces use` as a non-read command. The server reads `workspace_id` once at startup, so `/mcp restart vurvey` or a new session is required after the change.
 
 ### When you are genuinely stuck
 
@@ -305,11 +324,12 @@ The MCP server's own log is at `~/.config/vurvey/mcp.log`. Only protocol traffic
 - **No login.** Auth happens in the user's terminal. You cannot log them in.
 - **No subscriptions.** Real-time event streams are not exposed over MCP.
 - **No file uploads.** Multipart uploads aren't wired through the server — direct users to the web UI for CSV/media.
-- **No Vurvey engineering docs.** This server exposes workspace *data*. Questions about how the Vurvey platform is built are not answerable from these tools.
+- **No Vurvey engineering docs for most accounts.** `vurvey_docs_search` and `vurvey_docs_get` query a separate staff-only documentation service, which verifies the token and refuses non-staff email domains. For a customer account they are registered but will not answer, so do not route a platform-architecture question through them and present the refusal as a bug.
 
 ## Version + installation
 
-- Requires the `vurvey` CLI on `$PATH`. v0.17.x exposes the 84-tool advanced surface described here; older binaries expose fewer.
+- Requires the `vurvey` CLI **v0.19.1 or newer** on `$PATH`. Counts here (53 core, 82 advanced, 86 destructive) were measured against v0.19.2 with `tools/list`; add one where the API permits GraphQL introspection. Before v0.19.1 the four delete tools were registered at `advanced`, so the delete opt-in gated nothing. Nothing warns on a mismatch, so check `vurvey --version` before blaming a missing tool on anything else.
+- Known gap through v0.19.2: `vurvey_capability_blueprints_list` fails with `Variable "$wsId" of type "ID!" used in position expecting type "GUID!"`. Fixed on the CLI's main branch, unreleased. Do not tell the user their workspace has no blueprints on the strength of that error.
 - Install: `brew install Batterii/vurvey/vurvey`, then `vurvey login`. The plugin does not ship the binary.
 - The server auto-refreshes Firebase tokens; users run `vurvey login` once per profile.
 - The plugin is versioned in `plugins/vurvey/.claude-plugin/plugin.json`.

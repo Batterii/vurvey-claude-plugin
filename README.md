@@ -12,7 +12,11 @@ Works with **Claude Code**, **Claude Desktop**, **Cursor**, **Codex CLI**, and a
 
 ## How it works
 
-Three pieces. The important thing to understand is that **your Vurvey login stays on your own machine** — Claude never sees your password, and Anthropic never receives your Vurvey token.
+Three pieces, and two things to understand about what moves where.
+
+**Your Vurvey login stays on your own machine.** Claude never sees your password, and Anthropic never receives your Vurvey token.
+
+**Your Vurvey data does not stay on your machine.** Whatever a tool returns is inserted into the conversation and sent to the model provider, the same as text you paste in yourself. That is how Claude answers from it.
 
 ```mermaid
 flowchart LR
@@ -25,7 +29,7 @@ flowchart LR
     Claude -->|"tool call<br/>(MCP over stdio)"| CLI
     CLI -->|"GraphQL +<br/>your auth token"| API
     API -->|"only YOUR<br/>workspace data"| CLI
-    CLI -->|"results"| Claude
+    CLI -->|"results<br/>(go to the model)"| Claude
     Claude -->|"plain-English answer"| You
 
     style CLI fill:#e8f4ff,stroke:#0969da,stroke-width:2px
@@ -70,7 +74,9 @@ sequenceDiagram
 | Does Claude see my password? | No. You type it into the CLI in your own terminal. |
 | Does my Vurvey token get sent to Anthropic? | No. It goes from your machine straight to the Vurvey API. |
 | Can Claude see data I can't? | No. The API applies the same permissions as your account and workspace. |
-| Can Claude change things? | Yes — creating and updating are enabled so you can work without the web UI. Deleting is off unless you turn it on. See [What Claude can change](#what-claude-can-change). |
+| Does my workspace data get sent to Anthropic? | Yes. Every tool result is added to the conversation, so whatever a tool returns goes to the model provider along with the rest of the chat. |
+| What is in a tool result? | Whatever was asked for, verbatim. Respondent free text (`vurvey_answers_*`), workspace member names and email addresses (`vurvey_personas_members`), and anything your account can read through `vurvey_graphql_query`. Treat a tool call the way you would treat pasting that data into chat. |
+| Can Claude change things? | Not as shipped. This plugin runs read-only. Creating, updating, running, and deleting are all opt-in. See [What Claude can change](#what-claude-can-change). |
 | Do I need a Vurvey account? | Yes. This works against *your* workspace, so you need access to one. |
 
 ---
@@ -79,21 +85,26 @@ sequenceDiagram
 
 Two steps. Step 1 is the part people miss.
 
-### 1. Install the CLI and log in
+### 1. Install the CLI, log in, and pick a workspace
 
 ```bash
 brew install Batterii/vurvey/vurvey
 vurvey login
+vurvey workspaces list       # find the workspace you want
+vurvey workspaces use <id>   # select it
 ```
+
+**Do not skip the last command.** `vurvey login` does not select a workspace, and until one is selected every workspace-scoped question fails with `Variable "$workspaceId" got invalid value ""`. The error text blames the tool rather than the missing selection, so it is easy to misread as a bug. Claude cannot run this for you on the tier this plugin ships.
 
 Check it worked before moving on:
 
 ```bash
-vurvey --version   # need v0.8.0 or newer
-vurvey me          # should print your account
+vurvey --version               # need v0.19.1 or newer
+vurvey me                      # should print your account
+vurvey surveys list --limit 3  # should print surveys, not an error
 ```
 
-If `vurvey me` fails, Claude will fail the same way — fix this first. Not a Homebrew user? The install script, APT, RPM, Scoop, and direct-download options are in [`docs/install.md`](docs/install.md#1-install-the-cli-binary).
+If either of the last two fails, Claude will fail the same way. Fix it first. Not a Homebrew user? The install script, APT, RPM, Scoop, and direct-download options are in [`docs/install.md`](docs/install.md#1-install-the-cli-binary).
 
 ### 2. Connect it to your assistant
 
@@ -144,7 +155,7 @@ Add this to `~/.claude/settings.json`. It registers the marketplace *and* keeps 
 }
 ```
 
-This covers the plugin only — the CLI binary still updates on its own schedule. If a tool Claude expects is missing, the CLI is almost always what's behind, since tools ship in CLI releases rather than plugin releases.
+This covers the plugin only. The CLI binary still updates on its own schedule. If a *read* tool Claude expects is missing, the CLI is almost always what's behind, since tools ship in CLI releases rather than plugin releases. A missing *write* tool is the tier, not the version: see [What Claude can change](#what-claude-can-change).
 
 > Updating the plugin without refreshing the marketplace first can report "already up to date" when it isn't. `/plugin marketplace update Batterii/vurvey-claude-plugin` then `/plugin update vurvey`, or just let auto-update handle it.
 
@@ -152,7 +163,7 @@ This covers the plugin only — the CLI binary still updates on its own schedule
 
 ## What you can ask
 
-84 tools covering surveys, responses, workflows, capabilities, personas, brands, and chat — plus an escape hatch to every other `vurvey` CLI command. You don't need to know any tool names. Just ask.
+53 read-only tools as shipped, 82 once writes are turned on, covering surveys, responses, workflows, capabilities, personas, brands, and chat, plus an escape hatch to every other `vurvey` CLI command. You don't need to know any tool names. Just ask.
 
 **Explore**
 - *"What's in my Vurvey workspace?"* — one call gets you the whole picture
@@ -164,10 +175,10 @@ This covers the plugin only — the CLI binary still updates on its own schedule
 - *"Search all our answers for mentions of 'pricing' and tell me the sentiment."*
 - *"Compare response counts across my three most recent surveys."*
 
-**Get work done** (no web UI needed)
+**Get work done** (none of these work as shipped, they need the `advanced` tier: see [What Claude can change](#what-claude-can-change))
 - *"Run the weekly insights workflow and tell me when it finishes."*
 - *"Create a workflow from the competitive-analysis template."*
-- *"Switch me to the Acme workspace."*
+- *"Switch me to the Acme workspace."* (read-only alternative: switch in a terminal with `vurvey workspaces use <id>`, then `/mcp restart vurvey`)
 - *"Add these five people as contacts."*
 - *"Set the brand-tracking capability to run every Monday."*
 
@@ -181,8 +192,10 @@ If no dedicated tool fits, Claude can call any `vurvey` CLI command directly thr
 
 Claude discovers what's available the same way you would, by asking the CLI for `--help`.
 
+As shipped the escape hatch runs read commands only. Anything that writes (`create`, `update`, `delete`, and friends) is refused with *"non-read command requires advanced tier"* until you raise the tier.
+
 <details>
-<summary>Full tool list (84)</summary>
+<summary>Full tool list</summary>
 
 **Read**
 
@@ -200,20 +213,30 @@ Claude discovers what's available the same way you would, by asking the CLI for 
 | Brands | `brands_list`, `brands_get`, `brands_insights`, `brands_market_share` |
 | Chat | `chat_list`, `chat_get`, `chat_message_grounding`, `chat_export_markdown` |
 | Media | `clips_list`, `clips_get`, `files_get`, `file_tags_list` |
-| GraphQL | `graphql_query` — queries always; mutations at `advanced`; delete-pattern mutations only at `destructive` |
+| Engineering docs | `docs_search`, `docs_get` (staff-only, and enforced by the docs service, not the CLI: a customer's valid token reaches it and is refused) |
+| GraphQL | `graphql_query` (queries at every tier; mutations at `advanced`; delete-pattern mutations only at `destructive`), `graphql_introspect` |
 
-**Write** (enabled by default)
+**Write** (not shipped on; requires `VURVEY_MCP_TIER=advanced`)
 
 | Group | Tools |
 |---|---|
 | Workflows | `workflows_create`, `workflows_create_auto`, `workflows_create_from_template`, `workflows_update`, `workflows_run`, `workflows_pause`, `workflows_resume`, `workflows_cancel`, `workflows_duplicate`, `workflows_clone_from_history` |
 | Workflow reports | `workflows_report_regenerate`, `workflows_report_update`, `workflows_report_share` |
-| Workflow config | `workflow_schedules_create/delete`, `workflow_triggers_add/update/remove`, `workflow_variables_create/activate/delete` |
-| Capabilities | `capabilities_create`, `capabilities_update`, `capabilities_activate`, `capabilities_quick_start`, `capabilities_deploy_from_blueprint`, `capabilities_add_workflow`, `capabilities_remove_workflow`, `capabilities_run_workflow`, `capabilities_set_schedule` |
+| Workflow config | `workflow_schedules_create`, `workflow_triggers_add/update`, `workflow_variables_create/activate` |
+| Capabilities | `capabilities_create`, `capabilities_update`, `capabilities_activate`, `capabilities_quick_start`, `capabilities_deploy_from_blueprint`, `capabilities_add_workflow`, `capabilities_run_workflow`, `capabilities_set_schedule` |
 | Chat | `chat_send` |
 | Context | `workspace_switch`, `environment_switch` |
 
-All names are prefixed `vurvey_`. `graphql_introspect` appears only against environments that allow introspection — production disables it, so its absence there is expected.
+**Delete** (requires `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` on top of `advanced`)
+
+| Group | Tools |
+|---|---|
+| Workflow config | `workflow_schedules_delete`, `workflow_triggers_remove`, `workflow_variables_delete` |
+| Capabilities | `capabilities_remove_workflow` |
+
+These four were registered at `advanced` on CLI releases before v0.19.1, so the delete opt-in gated nothing for them. That is why the minimum version below is what it is.
+
+All names are prefixed `vurvey_`. `graphql_introspect` registers only against environments that allow introspection, so it is absent against production and experimental by design, which is why the read count is 53 rather than the 54 names listed here.
 
 </details>
 
@@ -221,19 +244,34 @@ All names are prefixed `vurvey_`. `graphql_introspect` appears only against envi
 
 ## What Claude can change
 
-The plugin ships at the **advanced** tier so you can actually run your workspace from chat instead of switching to the web app. Reading and writing are on; deleting is not.
+The plugin ships at the **core** tier. Claude can read your workspace and nothing else. Writing and deleting are both opt-in, and you are the one who turns them on.
 
 | Tier | What you get | Setting |
 |---|---|---|
-| core | 51 tools. Read-only — Claude can look, never touch. | `VURVEY_MCP_TIER=core` |
-| **advanced** *(default here)* | 84 tools. Everything above, plus create, update, run, schedule, and switch. | nothing to do |
-| destructive | Also allows deleting: workspaces, surveys, contacts, subscriptions. | add `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` |
+| **core** *(what this plugin ships)* | 53 tools. Read-only. Claude can look, never touch. | nothing to do |
+| advanced | 82 tools. Everything above, plus create, update, run, schedule, and switch. | `VURVEY_MCP_TIER=advanced` |
+| destructive | 86 tools. Also registers the four delete tools and allows `deleteX` GraphQL mutations. | `advanced` plus `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` |
+
+Counts measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp serve`. Add one to each against an environment that permits GraphQL introspection, which registers `vurvey_graphql_introspect` and makes it 54 / 83 / 87. Staging permits it; production and experimental do not.
+
+**`advanced` is the CLI's own default, so this pin is the only thing making the plugin read-only.** Any client wired up with `vurvey mcp install` (Claude Desktop, Cursor, Codex) gets no `env` block and therefore runs at `advanced`. Add the block yourself if you want those read-only too.
 
 **Why deletes are off.** Everything at `advanced` is recoverable — a workflow you didn't want can be paused, an edit can be re-edited. Deletes aren't. Since Claude is acting on an interpretation of what you asked, the one class of mistake worth a speed bump is the irreversible one. Turn it on if you need it; it's one line.
 
-**What still protects you at `advanced`:** your client asks permission before every single tool call, and the API enforces your own account permissions — Claude cannot reach anything you couldn't reach yourself. Read the tool call before approving it, the same way you'd read a command before pasting it into a terminal.
+**What protects you at `core`:** two things. The API enforces your own account permissions, so Claude cannot reach anything you couldn't reach yourself. And nothing registered on this tier can create, update, run, or delete. Moving to `advanced` removes the second one and leaves you relying on your client's approval prompt.
 
-To change tiers, edit `env` in the plugin's `mcp.json`:
+**Do not lean on that prompt.** Clients do prompt before a tool call by default, but ordinary settings switch it off, and then a write happens with no confirmation:
+
+- a permission rule that allowlists the Vurvey tools. Installed as a plugin they are namespaced `mcp__plugin_vurvey_vurvey__*`; added by hand as a server named `vurvey` they are `mcp__vurvey__*`.
+- `"defaultMode": "bypassPermissions"` in Claude Code settings
+- launching Claude Code with `--dangerously-skip-permissions`
+- the equivalent auto-run mode in another MCP client, such as Cursor's auto-run or Codex `approval_policy = "never"`
+
+`acceptEdits` is **not** one of these. It auto-accepts file edits and still prompts for MCP tool calls.
+
+If you run `advanced` with any of those four in effect, read the tier as "Claude may write to my Vurvey workspace without asking me first."
+
+To turn writes on, edit `env` in the plugin's `mcp.json`:
 
 ```json
 {
@@ -257,7 +295,7 @@ Ask Claude first. It has a diagnostic playbook in its bundled skill and will wal
 
 | What you see | What's wrong | Fix |
 |---|---|---|
-| Plugin installed, but no Vurvey tools at all | The CLI isn't installed — the plugin doesn't ship it | `which vurvey` empty → [step 1](#1-install-the-cli-and-log-in) |
+| Plugin installed, but no Vurvey tools at all | The CLI isn't installed, and the plugin doesn't ship it | `which vurvey` empty → [step 1](#1-install-the-cli-log-in-and-pick-a-workspace) |
 | `/mcp` doesn't list `vurvey` | Plugin components didn't load | [Reinstall the plugin](#reinstalling-the-plugin) |
 | A tool this README documents doesn't exist | CLI is behind — tools ship in CLI releases | `vurvey update`, then `/mcp restart vurvey` |
 | *"not authenticated"* on every call | No valid token | `vurvey login`, then `/mcp restart vurvey` |
@@ -266,6 +304,8 @@ Ask Claude first. It has a diagnostic playbook in its bundled skill and will wal
 | Server seems hung | — | `~/.config/vurvey/mcp.log`; stdout is protocol traffic only |
 | *"refusing to start against non-Vurvey host"* | `api_url` isn't a Vurvey domain | `vurvey config get api-url` |
 | `vurvey_graphql_introspect` missing | Production disables introspection | Working as intended |
+| `Variable "$workspaceId" got invalid value ""` | No workspace selected. The message blames the tool, but nothing is wrong with it | `vurvey workspaces list`, `vurvey workspaces use <id>`, then `/mcp restart vurvey` |
+| A write tool is missing, or *"requires advanced tier"* | The plugin ships read-only | [What Claude can change](#what-claude-can-change) |
 | Claude refused to delete something | Deletes are off by default | [What Claude can change](#what-claude-can-change) |
 
 ### Reinstalling the plugin
@@ -324,8 +364,12 @@ Prefer `--profile` over `--api-url` for anything involving credentials. Profiles
 
 ## Requirements
 
-- `vurvey` CLI v0.8.0+ on `$PATH` (v0.17.x for the full 84-tool surface)
+- `vurvey` CLI **v0.19.1 or newer** on `$PATH`. Earlier releases register the four delete tools at the `advanced` tier, so `VURVEY_MCP_ALLOW_DESTRUCTIVE` gated nothing for them and the "deletes are off" promise in these docs was false. v0.19.1 is the release that fixed it.
 - A Vurvey account and workspace — [vurvey.com](https://vurvey.com)
+
+**Nothing warns you on a version mismatch.** The plugin does not check the binary's version and MCP does not negotiate one, so an older CLI just answers with a different tool set. The symptoms are a tool documented here missing from `/mcp`, or counts that don't match what `/mcp` shows. Run `vurvey --version` in a terminal, or ask Claude to call `vurvey_environment_get`, to see which binary is answering, then `vurvey update` and `/mcp restart vurvey`.
+
+**Known gap at the time of writing.** `vurvey_capability_blueprints_list` fails on every release through v0.19.2 with `Variable "$wsId" of type "ID!" used in position expecting type "GUID!"`. The fix is on the CLI's main branch and ships in the next release. No released version delivers everything documented here.
 
 ## Contributing
 
