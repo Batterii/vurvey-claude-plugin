@@ -114,7 +114,9 @@ vurvey mcp serve --help
 # should list --tier, --read-only, --debug flags
 ```
 
-You need **v0.19.1 or newer**. That is the release where the four delete-shaped tools (`workflow_schedules_delete`, `workflow_variables_delete`, `workflow_triggers_remove`, `capabilities_remove_workflow`) moved behind `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`. On any earlier binary they are registered at the `advanced` tier, so the delete opt-in gates nothing and "deletes are off" is not true of your install. Older versions also expose fewer tools, and anything before v0.7.0 has no `vurvey mcp serve` at all.
+You need **v0.19.1 or newer**, and **v0.19.2** is the current release. v0.19.1 is the floor because that is where the four delete-shaped tools (`workflow_schedules_delete`, `workflow_variables_delete`, `workflow_triggers_remove`, `capabilities_remove_workflow`) moved behind `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`. On any earlier binary they are registered at the `advanced` tier, so the delete opt-in gates nothing and "deletes are off" is not true of your install. Older versions also expose fewer tools, and anything before v0.7.0 has no `vurvey mcp serve` at all.
+
+v0.19.2 does not close the `vurvey_cli` escape hatch at the `core` tier. That fix is on the CLI's main branch and is not in a release yet, so no available version enforces read-only on every path. [What the read-only tier does and does not stop](../README.md#what-the-read-only-tier-does-and-does-not-stop) has the detail.
 
 Nothing warns you on a mismatch: the plugin does not check the binary's version, and MCP does not negotiate one, so an old CLI simply answers with a different tool set. If a tool these docs describe is missing from your client, check `vurvey --version` before assuming it is broken, then run `vurvey update` and restart the server.
 
@@ -224,9 +226,11 @@ Claude will use `vurvey_surveys_list`, `vurvey_personas_list`, `vurvey_answers_s
 
 ### Tiers: what Claude may change
 
-The plugin ships at the **core** tier: reads only. No tool it registers can create, update, run, or delete, and `vurvey_graphql_query` refuses mutations. To allow writes, set `VURVEY_MCP_TIER` to `advanced` in the plugin's `mcp.json`; to also allow deletes, add `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` on top. See the README's "What Claude can change" section, which also lists the client settings that switch off the per-call approval prompt you would otherwise be relying on at `advanced`.
+The plugin ships at the **core** tier and pins `VURVEY_MCP_READ_ONLY=1` alongside it. No write or delete tool is registered, and `vurvey_graphql_query` refuses mutations. To allow writes, set `VURVEY_MCP_TIER` to `advanced` and drop the read-only pin in the plugin's `mcp.json`; to also allow deletes, add `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` on top.
 
-Note that `advanced` is the CLI's own default. This plugin's `env` block is the only reason it runs read-only, and a client configured by `vurvey mcp install` gets no such block.
+One exception is worth knowing before you treat `core` as a hard boundary: the `vurvey_cli` escape hatch is registered at this tier, and on releases through v0.19.2 its read-versus-write classifier can be defeated by a read verb in a flag value, a `help` token anywhere in the argument list, or a leading `--api-url`. `VURVEY_MCP_READ_ONLY=1` does not close it, because that setting gates registration by tier and `vurvey_cli` is a core tool. See [What the read-only tier does and does not stop](../README.md#what-the-read-only-tier-does-and-does-not-stop), which also lists the client settings that switch off the per-call approval prompt you would otherwise be relying on at `advanced`.
+
+Note that `advanced` is the CLI's own default. This plugin's `env` block is the only reason it runs read-only, and a client configured by a bare `vurvey mcp install` gets no such block.
 
 ### Update the plugin
 
@@ -518,7 +522,7 @@ Optional env vars:
 
 | Env var | Effect |
 |---|---|
-| `VURVEY_MCP_READ_ONLY=1` | Force read-only regardless of tier |
+| `VURVEY_MCP_READ_ONLY=1` | Only core-tier tools register, whatever `VURVEY_MCP_TIER` resolves to. It does not change what the `vurvey_cli` classifier allows, because that tool is itself core-tier. |
 | `VURVEY_MCP_TIER=advanced` | 82 tools: reads plus create, update, run, schedule, switch, and arbitrary non-delete GraphQL mutations. **This is the CLI default**, so it is what you get when no `env` block is present. |
 | `VURVEY_MCP_TIER=core` | 53 tools, read-only, mutations rejected. This is what the Claude Code plugin pins. |
 | `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` (+ advanced) | 86 tools: adds the four delete tools and allows `deleteX` mutations |

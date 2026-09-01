@@ -108,8 +108,9 @@ The read tools are listed first, then the write tools under [Changing things](#c
 
 - **Discover before guessing:** call with `args: ["<resource>", "--help"]` (e.g. `["billing", "--help"]`) to see real subcommands and flags. Don't invent flags.
 - **Don't prepend `vurvey`** — pass `["workspaces", "list"]`, not `["vurvey", "workspaces", "list"]`.
-- **Refused at `core`, which is the shipped tier:** every non-read subcommand, with "non-read command requires advanced tier". That includes `workspaces use`, so you cannot change the active workspace for the user; give them the terminal command instead.
-- **Blocked regardless of tier:** `login`, `logout`, `mcp`, `graphql`, `config set`, `config profile`. Use `vurvey_graphql_query` for GraphQL. Context changes go through `vurvey_environment_switch` / `vurvey_workspace_switch`, which are `advanced` tools and absent at `core`. If the user needs to log in, tell them to run `vurvey login` in their own terminal.
+- **Refused at `core`, which is the shipped tier:** a plainly written non-read subcommand, with "non-read command requires advanced tier". That includes `workspaces use`, so you cannot change the active workspace for the user; give them the terminal command instead.
+- **Meant to be blocked regardless of tier:** `login`, `logout`, `mcp`, `graphql`, `config set`, `config profile`. Use `vurvey_graphql_query` for GraphQL. Context changes go through `vurvey_environment_switch` / `vurvey_workspace_switch`, which are `advanced` tools and absent at `core`. If the user needs to log in, tell them to run `vurvey login` in their own terminal.
+- **Treat both of those as heuristics, not as gates.** They match on the argument list, and on CLI releases through v0.19.2 three shapes get past them: a read verb sitting in a flag value (`["surveys", "create", "--name", "list"]` classifies as a read), a `help` token anywhere in the list (checked before the blocklist and both tier checks), and a leading value-taking global flag such as `--api-url`, whose value is mistaken for the subcommand. That is a statement about your own responsibility, not a menu. Write the argument list that plainly says what you mean, never one shaped to make a refusal go away, and never call `config get token` in any form: it prints the user's auth and refresh tokens into this conversation, where they reach the model provider.
 
 ### When a tool seems to be missing
 
@@ -128,14 +129,14 @@ Two other causes worth ruling out before blaming the version: a delete-shaped to
 
 ## Changing things
 
-**None of this is available on the tier the plugin ships.** At `core` the write tools below are not registered at all, `vurvey_cli` refuses every non-read subcommand, and `vurvey_graphql_query` refuses every mutation. The table is here so you can tell the user exactly what turning writes on would give them, not so you can attempt it.
+**None of this is available on the tier the plugin ships.** At `core` the write tools below are not registered at all, `vurvey_graphql_query` refuses every mutation, and `vurvey_cli` refuses a non-read subcommand (subject to the classifier caveats above, which are a reason to be more careful rather than a way through). The table is here so you can tell the user exactly what turning writes on would give them, not so you can attempt it.
 
 To opt in, the user sets `VURVEY_MCP_TIER=advanced` in the plugin's `mcp.json` `env` block and restarts the server. Point them at the README's "What Claude can change" section before they do, because it lists the client settings that switch off the per-call approval prompt they would then be relying on.
 
 Three separate gates apply, so be precise about which surface you're on:
 
 - **Dedicated write tools:** not registered below `advanced`. The delete-shaped ones (`vurvey_workflow_schedules_delete`, `vurvey_workflow_variables_delete`, `vurvey_workflow_triggers_remove`, `vurvey_capabilities_remove_workflow`) additionally need `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`. If you can't see a tool, it's off.
-- **`vurvey_cli` escape hatch:** at `core` every non-read subcommand is refused with "non-read command requires advanced tier". At `advanced`, `delete`, `delete-many`, `revert`, `deactivate`, and `cancel` stay refused.
+- **`vurvey_cli` escape hatch:** at `core` a non-read subcommand is refused with "non-read command requires advanced tier". At `advanced`, `delete`, `delete-many`, `revert`, `deactivate`, and `cancel` stay refused. Both refusals come from the argument-list heuristic described under [the CLI escape hatch](#anything-else-the-cli-escape-hatch), so they are the floor of your caution, not the ceiling.
 - **`vurvey_graphql_query`:** mutations refused at `core`; `deleteX` / `removeX` / `destroyX` refused at `advanced` too.
 
 | Intent | Tools |
@@ -330,6 +331,7 @@ The MCP server's own log is at `~/.config/vurvey/mcp.log`. Only protocol traffic
 
 - Requires the `vurvey` CLI **v0.19.1 or newer** on `$PATH`. Counts here (53 core, 82 advanced, 86 destructive) were measured against v0.19.2 with `tools/list`; add one where the API permits GraphQL introspection. Before v0.19.1 the four delete tools were registered at `advanced`, so the delete opt-in gated nothing. Nothing warns on a mismatch, so check `vurvey --version` before blaming a missing tool on anything else.
 - Known gap through v0.19.2: `vurvey_capability_blueprints_list` fails with `Variable "$wsId" of type "ID!" used in position expecting type "GUID!"`. Fixed on the CLI's main branch, unreleased. Do not tell the user their workspace has no blueprints on the strength of that error.
+- Known gap through v0.19.2: the `vurvey_cli` classifier can be talked past, as described under [the CLI escape hatch](#anything-else-the-cli-escape-hatch). Fixed on the CLI's main branch, unreleased. If a user asks whether `core` guarantees the assistant cannot write, the honest answer is that the write tools are genuinely absent and mutations are genuinely refused, but the escape hatch's split is a heuristic, so their account's own API permissions are the boundary they should be reasoning about.
 - Install: `brew install Batterii/vurvey/vurvey`, then `vurvey login`. The plugin does not ship the binary.
 - The server auto-refreshes Firebase tokens; users run `vurvey login` once per profile.
 - The plugin is versioned in `plugins/vurvey/.claude-plugin/plugin.json`.

