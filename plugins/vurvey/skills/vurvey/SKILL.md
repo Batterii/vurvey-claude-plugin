@@ -133,7 +133,7 @@ Two other causes worth ruling out before blaming the version: a delete-shaped to
 
 **None of this is available on the tier the plugin ships.** At `core` the write tools below are not registered at all, `vurvey_graphql_query` refuses every mutation, and `vurvey_cli` refuses a non-read subcommand (subject to the classifier caveats above, which are a reason to be more careful rather than a way through). The table is here so you can tell the user exactly what turning writes on would give them, not so you can attempt it.
 
-To opt in, the user sets `VURVEY_MCP_TIER=advanced` in the plugin's `mcp.json` `env` block and restarts the server. Point them at the README's "What Claude can change" section before they do, because it lists the client settings that switch off the per-call approval prompt they would then be relying on.
+To opt in, the user sets `VURVEY_MCP_TIER=advanced` in the plugin's `mcp.json` `env` block, removes the `VURVEY_MCP_READ_ONLY` pin sitting next to it, and restarts the server. Both, not just the tier: the read-only pin wins on its own, so changing only the tier looks like nothing happened. Point them at the README's "What Claude can change" section before they do, because it lists the client settings that switch off the per-call approval prompt they would then be relying on.
 
 Three separate gates apply, so be precise about which surface you're on:
 
@@ -158,7 +158,7 @@ Three separate gates apply, so be precise about which surface you're on:
 - **Say what you're about to do** in one line before a create/update/run, especially when the user's phrasing was ambiguous.
 - **Don't chain writes speculatively.** Do the one thing asked, report the result, then continue.
 - **Check `vurvey_workflows_status` before starting a run** that may already be in flight.
-- **A write request at `core` is not a failure to route around either.** Say the plugin ships read-only, name the one line that changes it (`VURVEY_MCP_TIER=advanced`), and stop. Trying the same write through `vurvey_cli` or `vurvey_graphql_query` is both refused and the wrong instinct.
+- **A write request at `core` is not a failure to route around either.** Say the plugin ships read-only, point them at [Changing things](#changing-things) for the two env values that change it, and stop. Trying the same write through `vurvey_cli` or `vurvey_graphql_query` is both refused and the wrong instinct.
 - **A delete request is not a failure to route around.** Tell the user deletes are disabled and that they can enable them with `VURVEY_MCP_ALLOW_DESTRUCTIVE=1`, or do it in the web app. Do not attempt the same delete through `vurvey_cli` or `vurvey_graphql_query` — those are gated too, and working around a safety gate is not something to do on the user's behalf.
 
 ## Picking the right tool

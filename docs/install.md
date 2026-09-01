@@ -559,7 +559,7 @@ All tool names are prefixed `vurvey_` (e.g. `vurvey_surveys_list`). The full lis
 
 **"refusing to start MCP server against non-Vurvey host"** — your config's `api_url` isn't a recognized Vurvey domain. The MCP server hard-fails this (the CLI only warns) to prevent credential leakage. Check `~/.config/vurvey/config.json`.
 
-**"mutations require advanced tier"**: the server is running at `core`, which is what the Claude Code plugin ships, so this is expected rather than broken. Read [Tiers: what Claude may change](#tiers-what-claude-may-change) first, then set `VURVEY_MCP_TIER=advanced` in your MCP config's `env` block and restart the server if you do want writes.
+**"mutations require advanced tier"**: the server is running at `core`, which is what the Claude Code plugin ships, so this is expected rather than broken. Read [Tiers: what Claude may change](#tiers-what-claude-may-change) first. If you do want writes, set `VURVEY_MCP_TIER=advanced` in your MCP config's `env` block, remove any `VURVEY_MCP_READ_ONLY` next to it, and restart the server.
 
 **`Variable "$workspaceId" got invalid value ""`**: no workspace is selected. Run `vurvey workspaces list`, then `vurvey workspaces use <id>`, then restart the server. See [2b. Select a workspace](#2b-select-a-workspace). The error's own wording suggests a schema problem in the tool; that is a misread.
 

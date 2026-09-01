@@ -250,7 +250,7 @@ The plugin ships at the **core** tier, pinned read-only. Writing and deleting ar
 | Tier | What you get | Setting |
 |---|---|---|
 | **core** *(what this plugin ships)* | 53 tools. No write or delete tool is registered, and GraphQL mutations are refused. | nothing to do |
-| advanced | 82 tools. Everything above, plus create, update, run, schedule, and switch. | `VURVEY_MCP_TIER=advanced` |
+| advanced | 82 tools. Everything above, plus create, update, run, schedule, and switch. | `VURVEY_MCP_TIER=advanced`, and drop `VURVEY_MCP_READ_ONLY` |
 | destructive | 86 tools. Also registers the four delete tools and allows `deleteX` GraphQL mutations. | `advanced` plus `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` |
 
 Counts measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp serve`.
@@ -306,7 +306,7 @@ This matters more, not less, because respondent free text reaches the model (see
 
 If you run `advanced` with any of those four in effect, read the tier as "Claude may write to my Vurvey workspace without asking me first."
 
-To turn writes on, edit `env` in the plugin's `mcp.json`:
+To turn writes on, replace the whole `env` block in the plugin's `mcp.json`. Both pins have to go: leaving `VURVEY_MCP_READ_ONLY` behind keeps the server read-only whatever the tier says, which looks like the change not taking effect.
 
 ```json
 {
