@@ -4,7 +4,8 @@
       "command": "vurvey",
       "args": ["mcp", "serve"],
       "env": {
-        "VURVEY_MCP_TIER": "core"
+        "VURVEY_MCP_TIER": "core",
+        "VURVEY_MCP_READ_ONLY": "1"
       }
     }
   }
