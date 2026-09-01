@@ -127,7 +127,7 @@ which is why the list below of what is impossible is short and absolute.
 | Ability | What it means |
 |---|---|
 | **Read this workspace** | Claude can read what your role can already see here, which may include campaigns, survey responses, datasets, agents and workflows. |
-| **Create and edit content here** | Claude can draft and change workflows and capabilities here, along with their schedules, triggers and variables, and send messages in Vurvey chat. It can also turn on sharing for a workflow run's report, which is the one thing on this list that reaches outside the workspace. Campaigns, agents and datasets are read-only through the connector, however editable they are in the web app. |
+| **Create and edit content here** | Claude can draft and change workflows and capabilities here, along with their schedules, triggers and variables, and send messages in Vurvey chat. It can also publish a workflow run's report, which is the one thing on this list that leaves the workspace, see below. Campaigns, agents and datasets are read-only through the connector, however editable they are in the web app. |
 | **Run workflows that already exist here** | Claude can run a workflow this workspace already has and read what it produces. Running is separate from creating: this ability alone cannot make a new workflow. |
 
 **Your own role is the ceiling.** Claude acts as you and never beyond what your role in this
@@ -187,10 +187,10 @@ arguments it is handed the second time. If anything changed in between, the bind
 and the call is refused. The token is single use and cannot be spent in another workspace.
 
 **The preview is a description of the call, not a copy of it.** Only short scalars come back
-verbatim. A string over 120 characters is shown as its shape, `<string:512 chars>`, and anything
-structured is shown as `<structured value, not shown>`. That is deliberate: the preview is built
-by the same reduction as Vurvey's audit record, so respondent free text and a report password
-cannot be copied into either by a write that carries them. The binding is over the **full**
+verbatim. A string over 120 characters is shown only as its shape, for example
+`<string:512 chars>`, and anything structured is shown as `<structured value, not shown>`. That is
+deliberate: the preview is built by the same reduction as Vurvey's audit record, so respondent free
+text and a report password cannot be copied into either by a write that carries them. The binding is over the **full**
 arguments, so the call that runs is byte for byte the call that was proposed, but if you want to
 know what is inside a value the preview did not print, ask Claude to say what it is about to send.
 
