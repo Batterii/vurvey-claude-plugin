@@ -1,12 +1,8 @@
 {
   "mcpServers": {
     "vurvey": {
-      "command": "vurvey",
-      "args": ["mcp", "serve"],
-      "env": {
-        "VURVEY_MCP_TIER": "core",
-        "VURVEY_MCP_READ_ONLY": "1"
-      }
+      "type": "http",
+      "url": "${VURVEY_MCP_URL}"
     }
   }
 }

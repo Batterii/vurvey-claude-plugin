@@ -1,9 +1,11 @@
 {
   "name": "vurvey",
-  "description": "Vurvey platform integration: read your Vurvey workspace from chat via the vurvey CLI MCP server. Ships read-only; writes and deletes are opt-in.",
-  "version": "0.8.0",
+  "description": "Connect Claude to a Vurvey workspace. Hosted connector: paste your workspace address, approve it in Vurvey, and ask about your campaigns, responses, agents and workflows. Nothing to install.",
+  "version": "1.0.0",
   "author": {
     "name": "Batterii",
     "email": "engineering@batterii.com"
-  }
+  },
+  "homepage": "https://github.com/Batterii/vurvey-claude-plugin",
+  "license": "MIT"
 }
