@@ -14,6 +14,11 @@ connected. Tell the user which one to do, matching their client:
 - Claude Desktop or claude.ai: open **Customize**, then **Connectors**, and click **Connect** on
   the Vurvey connector.
 
+If `vurvey` is listed but will not connect, and Claude Code reports its URL as unset or invalid,
+the plugin's **Workspace connector address** option is empty. That is the cause, and saying
+"go and copy the address again" instead sends them in a circle. Tell them to run `/plugin manage`,
+open the Vurvey plugin's options, paste the address in, and start a new session.
+
 If `vurvey` is not listed at all, they have not added the address yet. Point them at
 **Workspace settings**, then **Connected apps** in Vurvey, where the address and its **Copy**
 button are.
@@ -52,4 +57,5 @@ If everything is working, say so in one line and suggest a next step, such as as
 workspace. If something is wrong, give them the single thing to do next and stop there.
 
 Never tell the user to install anything, run a command in a terminal, log in, or restart a server.
-The connector is hosted by Vurvey and none of those apply.
+The connector is hosted by Vurvey and none of those apply. `/mcp` and `/plugin manage` are the
+exception, because they are Claude Code's own menus rather than anything on their machine.

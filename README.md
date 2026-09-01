@@ -70,25 +70,11 @@ and how to chain them.
 /plugin install vurvey
 ```
 
-The plugin ships the connector entry but cannot know which workspace is yours, so give it the
-address you copied. Set `VURVEY_MCP_URL` in the environment Claude Code runs in:
+Enabling it asks you for one thing, **Workspace connector address**. Paste in the address you
+copied. Nothing else to set, no file to edit, no terminal command. To change it later, or to check
+what it is holding, run `/plugin manage` and open the Vurvey plugin's options.
 
-```bash
-export VURVEY_MCP_URL="paste-your-address-here"
-```
-
-Put that line in your shell profile so it survives a new terminal. Until the variable is set,
-Claude Code reports a missing-variable warning for the `vurvey` server in `claude mcp list` and the
-server does not connect.
-
-If you would rather not set a variable, add the connector directly instead and skip the plugin. You
-get the tools without the skill:
-
-```bash
-claude mcp add --transport http vurvey "paste-your-address-here"
-```
-
-Either way, start a new session afterwards. Claude Code connects plugin servers at session start.
+Then start a new session. Claude Code connects plugin servers at session start.
 
 ### 3. Approve it in Vurvey
 
@@ -224,7 +210,7 @@ Reconnecting means approving again from scratch.
 
 | What you see | What is wrong | Fix |
 |---|---|---|
-| Claude Code warns about a missing variable for `vurvey` | `VURVEY_MCP_URL` is not set in the environment Claude Code was launched from | Set it, then start a new session |
+| `URL is unset or invalid, open /plugin manage and configure vurvey options` | The plugin's **Workspace connector address** option is empty | `/plugin manage`, open the Vurvey plugin's options, paste the address, start a new session |
 | `MCP server "vurvey" has a "url" but no "type"` | A hand-written config entry is missing `"type": "http"` | Use the entry from this plugin, or `claude mcp add --transport http` |
 | The server is listed but never connects | You have not approved it yet | `/mcp`, select `vurvey`, **Authenticate** |
 | The approval screen says the workspace does not have the connector turned on | It is an entitlement on the workspace, not something you can switch on yourself | Ask your Vurvey contact |

@@ -1,11 +1,19 @@
 {
   "name": "vurvey",
   "description": "Connect Claude to a Vurvey workspace. Hosted connector: paste your workspace address, approve it in Vurvey, and ask about your campaigns, responses, agents and workflows. Nothing to install.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Batterii",
     "email": "engineering@batterii.com"
   },
   "homepage": "https://github.com/Batterii/vurvey-claude-plugin",
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "VURVEY_MCP_URL": {
+      "type": "string",
+      "title": "Workspace connector address",
+      "description": "Copy it from Workspace settings, then Connected apps, in Vurvey. It names one workspace.",
+      "required": true
+    }
+  }
 }

@@ -2,7 +2,7 @@
   "mcpServers": {
     "vurvey": {
       "type": "http",
-      "url": "${VURVEY_MCP_URL}"
+      "url": "${user_config.VURVEY_MCP_URL}"
     }
   }
 }
