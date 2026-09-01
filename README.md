@@ -237,7 +237,7 @@ The escape hatch is meant to run read commands only, and it refuses an ordinary 
 
 These four were registered at `advanced` on CLI releases before v0.19.1, so the delete opt-in gated nothing for them. That is why the minimum version below is what it is.
 
-All names are prefixed `vurvey_`. `graphql_introspect` registers only against environments that allow introspection, so it is absent against production and experimental by design, which is why the read count is 53 rather than the 54 names listed here.
+All names are prefixed `vurvey_`. `graphql_introspect` registers only against an API that allows introspection, which no hosted Vurvey environment does, so it is absent in normal use. That is why the read count is 53 rather than the 54 names listed here.
 
 </details>
 
@@ -253,7 +253,9 @@ The plugin ships at the **core** tier, pinned read-only. Writing and deleting ar
 | advanced | 82 tools. Everything above, plus create, update, run, schedule, and switch. | `VURVEY_MCP_TIER=advanced` |
 | destructive | 86 tools. Also registers the four delete tools and allows `deleteX` GraphQL mutations. | `advanced` plus `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` |
 
-Counts measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp serve`. Add one to each against an environment that permits GraphQL introspection, which registers `vurvey_graphql_introspect` and makes it 54 / 83 / 87. Staging permits it; production and experimental do not.
+Counts measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp serve`.
+
+They can each read one higher, 54 / 83 / 87, when `vurvey_graphql_introspect` registers. Two situations do that, and neither is a hosted environment: an API run locally with `NODE_ENV=development`, which is the only setting under which Apollo enables introspection, and a server started before you have logged in, because the startup probe registers the tool when it cannot run. Production, staging, and experimental all disable introspection.
 
 **`advanced` is the CLI's own default, so this pin is the only thing making the plugin read-only.** A client wired up with a bare `vurvey mcp install` (Claude Desktop, Cursor, Codex) gets no `env` block and therefore runs at `advanced`. Pass `--read-only` to get the same posture there:
 
@@ -336,7 +338,7 @@ Ask Claude first. It has a diagnostic playbook in its bundled skill and will wal
 | **`Access denied: Invalid or expired auth token`** | Signed in against the wrong environment | `vurvey update` — see [below](#access-denied-invalid-or-expired-auth-token) |
 | Server seems hung | — | `~/.config/vurvey/mcp.log`; stdout is protocol traffic only |
 | *"refusing to start against non-Vurvey host"* | `api_url` isn't a Vurvey domain | `vurvey config get api-url` |
-| `vurvey_graphql_introspect` missing | Production disables introspection | Working as intended |
+| `vurvey_graphql_introspect` missing | Every hosted environment disables introspection | Working as intended |
 | `Variable "$workspaceId" got invalid value ""` | No workspace selected. The message blames the tool, but nothing is wrong with it | `vurvey workspaces list`, `vurvey workspaces use <id>`, then `/mcp restart vurvey` |
 | A write tool is missing, or *"requires advanced tier"* | The plugin ships read-only | [What Claude can change](#what-claude-can-change) |
 | Claude refused to delete something | Deletes are off by default | [What Claude can change](#what-claude-can-change) |
@@ -400,7 +402,7 @@ Prefer `--profile` over `--api-url` for anything involving credentials. Profiles
 - `vurvey` CLI **v0.19.1 or newer** on `$PATH`, and **v0.19.2** is the current release. v0.19.1 is the floor because earlier releases register the four delete tools at the `advanced` tier, so `VURVEY_MCP_ALLOW_DESTRUCTIVE` gated nothing for them and the "deletes are off" promise in these docs was false. Note that v0.19.2 does **not** close the `vurvey_cli` escape hatch described in [What the read-only tier does and does not stop](#what-the-read-only-tier-does-and-does-not-stop), and neither does `VURVEY_MCP_READ_ONLY=1`.
 - A Vurvey account and workspace — [vurvey.com](https://vurvey.com)
 
-**Nothing warns you on a version mismatch.** The plugin does not check the binary's version and MCP does not negotiate one, so an older CLI just answers with a different tool set. The symptoms are a tool documented here missing from `/mcp`, or counts that don't match what `/mcp` shows. Run `vurvey --version` in a terminal, or ask Claude to call `vurvey_environment_get`, to see which binary is answering, then `vurvey update` and `/mcp restart vurvey`.
+**Nothing warns you on a version mismatch.** The plugin does not check the binary's version and MCP does not negotiate one, so an older CLI just answers with a different tool set. The symptoms are a tool documented here missing from `/mcp`, or counts that don't match what `/mcp` shows. Run `vurvey --version` in a terminal to see which binary is answering, then `vurvey update` and `/mcp restart vurvey`. Asking Claude will not tell you: through v0.19.2 no tool reports the server's own version, and `vurvey_environment_get` returns only the profile, API URL, environment label, workspace id, and whether a token is present.
 
 **Known gaps at the time of writing.** No released version delivers everything documented here.
 

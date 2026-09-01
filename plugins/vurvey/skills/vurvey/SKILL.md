@@ -13,7 +13,7 @@ The `vurvey` MCP server exposes the Vurvey platform API as structured tools. Use
 
 ## Available tools (core tier as shipped, 53 tools)
 
-The plugin pins `VURVEY_MCP_TIER=core`: reads only. The write tools under [Changing things](#changing-things) are **not registered** unless the user has set `VURVEY_MCP_TIER=advanced` themselves, and the four delete tools need `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` on top of that.
+The plugin pins `VURVEY_MCP_TIER=core` and `VURVEY_MCP_READ_ONLY=1`. The write tools under [Changing things](#changing-things) are **not registered** unless the user has set `VURVEY_MCP_TIER=advanced` themselves and dropped the read-only pin, and the four delete tools need `VURVEY_MCP_ALLOW_DESTRUCTIVE=1` on top of that.
 
 Do not assume a tier. Go by the tools you can actually see: if a write tool is absent, the server is at `core`, and the right response is to tell the user how to opt in rather than to look for a workaround.
 
@@ -100,7 +100,7 @@ The read tools are listed first, then the write tools under [Changing things](#c
 |---|---|
 | `vurvey_graphql_query` | Arbitrary GraphQL operation. Queries always allowed. Mutations rejected at `core`, which is the shipped tier; allowed at `advanced` except for delete-pattern field names (`deleteX`/`removeX`/`destroyX`), which need `destructive`. Subscriptions unsupported. |
 
-`vurvey_graphql_introspect` registers only when the target API allows introspection. Production has it disabled, so against production the tool is absent by design — don't tell the user it's broken. Don't send `__schema` / `__type` queries through `vurvey_graphql_query` either; they're rejected.
+`vurvey_graphql_introspect` registers only when the target API allows introspection, which production, staging and experimental all disable, so in normal use the tool is absent by design. Don't tell the user it's broken. Don't send `__schema` / `__type` queries through `vurvey_graphql_query` either; they're rejected.
 
 ### Anything else: the CLI escape hatch
 
@@ -123,9 +123,11 @@ vurvey --version
 curl -s https://storage.googleapis.com/vurvey-cli-releases/latest
 ```
 
+Those go in the user's terminal. Through v0.19.2 no tool reports the server's own version, so you cannot answer this one yourself: `vurvey_environment_get` returns the profile, API URL, environment label, workspace id, and whether a token is present, and nothing more.
+
 If the installed version is behind, tell the user to run `vurvey update` and then `/mcp restart vurvey`. The `/vurvey-update` command does this check for both the CLI and the plugin.
 
-Two other causes worth ruling out before blaming the version: a delete-shaped tool is absent by design (see below), and `vurvey_graphql_introspect` is absent against production on purpose.
+Two other causes worth ruling out before blaming the version: a delete-shaped tool is absent by design (see below), and `vurvey_graphql_introspect` is absent against every hosted environment on purpose.
 
 ## Changing things
 
@@ -291,7 +293,7 @@ To confirm it worked, have them run `/mcp` and look for `vurvey` as connected.
 
 Do not send the user chasing any of these:
 
-- **`vurvey_graphql_introspect` is missing.** Production disables schema introspection, so the tool is not registered there. Expected. Do not send `__schema` or `__type` queries through `vurvey_graphql_query` either; they are rejected.
+- **`vurvey_graphql_introspect` is missing.** Production, staging and experimental all disable schema introspection, so the tool is not registered against any of them. Expected. Do not send `__schema` or `__type` queries through `vurvey_graphql_query` either; they are rejected.
 - **A delete tool is missing.** Deletes are gated off by design. See [Changing things](#changing-things).
 - **"refusing to start against non-Vurvey host".** The configured API URL is not a Vurvey domain. This guard exists to stop credentials being sent somewhere they should not go. Have them run `vurvey config get api-url` and check it against the three environments above.
 - **A tool returns an empty list.** Usually a real empty result or the wrong workspace, not a failure. Check `vurvey_workspace_info` and offer `vurvey_workspaces_list` before treating it as a bug.
@@ -329,7 +331,7 @@ The MCP server's own log is at `~/.config/vurvey/mcp.log`. Only protocol traffic
 
 ## Version + installation
 
-- Requires the `vurvey` CLI **v0.19.1 or newer** on `$PATH`. Counts here (53 core, 82 advanced, 86 destructive) were measured against v0.19.2 with `tools/list`; add one where the API permits GraphQL introspection. Before v0.19.1 the four delete tools were registered at `advanced`, so the delete opt-in gated nothing. Nothing warns on a mismatch, so check `vurvey --version` before blaming a missing tool on anything else.
+- Requires the `vurvey` CLI **v0.19.1 or newer** on `$PATH`. Counts here (53 core, 82 advanced, 86 destructive) were measured against v0.19.2 with `tools/list`; each reads one higher where the API permits GraphQL introspection, which no hosted environment does. Before v0.19.1 the four delete tools were registered at `advanced`, so the delete opt-in gated nothing. Nothing warns on a mismatch, so check `vurvey --version` before blaming a missing tool on anything else.
 - Known gap through v0.19.2: `vurvey_capability_blueprints_list` fails with `Variable "$wsId" of type "ID!" used in position expecting type "GUID!"`. Fixed on the CLI's main branch, unreleased. Do not tell the user their workspace has no blueprints on the strength of that error.
 - Known gap through v0.19.2: the `vurvey_cli` classifier can be talked past, as described under [the CLI escape hatch](#anything-else-the-cli-escape-hatch). Fixed on the CLI's main branch, unreleased. If a user asks whether `core` guarantees the assistant cannot write, the honest answer is that the write tools are genuinely absent and mutations are genuinely refused, but the escape hatch's split is a heuristic, so their account's own API permissions are the boundary they should be reasoning about.
 - Install: `brew install Batterii/vurvey/vurvey`, then `vurvey login`. The plugin does not ship the binary.

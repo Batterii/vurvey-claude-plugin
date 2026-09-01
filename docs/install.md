@@ -533,7 +533,7 @@ Optional env vars:
 
 ## What tools you get
 
-53 read-only tools at the `core` tier the plugin ships, 82 at `advanced`, 86 with deletes enabled. Measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp serve`; add one to each against an environment that permits GraphQL introspection. Full breakdown and provenance in the [README](../README.md#what-claude-can-change). Highlights:
+53 read-only tools at the `core` tier the plugin ships, 82 at `advanced`, 86 with deletes enabled. Measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp serve`. Each reads one higher when `vurvey_graphql_introspect` registers, which no hosted environment allows. Full breakdown and provenance in the [README](../README.md#what-claude-can-change). Highlights:
 
 | Group | Tools |
 |---|---|
