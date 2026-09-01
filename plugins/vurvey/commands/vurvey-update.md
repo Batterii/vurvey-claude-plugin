@@ -1,53 +1,39 @@
 ---
-description: Check whether the Vurvey CLI and plugin are up to date, and say exactly what to run
+description: Check whether the Vurvey plugin is up to date and say exactly what to run
 ---
 
-Check both halves of the Vurvey integration and report anything stale. The CLI and the plugin version independently, so check each.
+Check whether the installed Vurvey plugin is behind what is published, and report it in one or two
+lines.
 
-## 1. The CLI
+This checks the plugin only. There is nothing else to update: the connector is hosted by Vurvey, so
+its tools change on Vurvey's side with no action from the user.
 
-Installed version:
+## 1. Compare
 
-```bash
-vurvey --version
-```
-
-Latest published version (public, no auth needed):
-
-```bash
-curl -s https://storage.googleapis.com/vurvey-cli-releases/latest
-```
-
-Compare them. If the installed version is behind, tell the user to run:
-
-```bash
-vurvey update
-```
-
-Then have them restart the MCP server (`/mcp restart vurvey` in Claude Code) so the new binary is picked up. A stale CLI is the usual cause of "that tool doesn't exist" — tools are added in CLI releases, not plugin releases.
-
-## 2. The plugin
-
-Latest published plugin version:
+Latest published version:
 
 ```bash
 curl -s https://raw.githubusercontent.com/Batterii/vurvey-claude-plugin/main/.claude-plugin/marketplace.json
 ```
 
-Read `plugins[0].version` from that JSON and compare it against the installed plugin version, which is in this plugin's own `.claude-plugin/plugin.json`. If you cannot determine the installed version, say so rather than guessing.
+Read `plugins[0].version` from that JSON and compare it against the installed plugin version, which
+is in this plugin's own `.claude-plugin/plugin.json`. If you cannot determine the installed
+version, say so rather than guessing.
 
-If the plugin is behind, tell the user to run:
+## 2. If it is behind
 
 ```
 /plugin marketplace update Batterii/vurvey-claude-plugin
 /plugin update vurvey
 ```
 
-The marketplace refresh comes first — `/plugin update` compares against the cached marketplace index, so updating without refreshing can report "already up to date" when it isn't.
+The marketplace refresh comes first. `/plugin update` compares against the cached marketplace
+index, so updating without refreshing can report "already up to date" when it is not.
 
 ## 3. Offer to stop the manual checking
 
-If anything was stale, mention once that auto-update exists, and show the snippet for `~/.claude/settings.json`:
+If it was behind, mention once that auto-update exists, and show the snippet for
+`~/.claude/settings.json`:
 
 ```json
 {
@@ -60,10 +46,11 @@ If anything was stale, mention once that auto-update exists, and show the snippe
 }
 ```
 
-Note that this keeps the *plugin* current automatically, but not the CLI binary — `vurvey update` is still a manual step, or their package manager's (`brew upgrade vurvey`).
-
 ## Reporting
 
-Keep it short. If both are current, say so in one line and stop — don't print version tables or explain the architecture. Only expand when something is actually behind, and lead with the exact command to run.
+Keep it short. If it is current, say so in one line and stop. Only expand when it is behind, and
+lead with the exact command to run. If the network call fails, say so rather than claiming
+everything is fine.
 
-If the network calls fail, say which one failed and report what you could determine locally rather than claiming everything is fine.
+A stale plugin is not a likely cause of a missing tool. The tool set comes from the hosted
+connector and from what the user approved, so check `/vurvey-connection` first for that.
