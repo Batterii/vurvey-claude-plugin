@@ -165,11 +165,19 @@ limits a connector that calls too fast.
 
 Anything that changes something, or runs a workflow, takes two calls rather than one.
 
-The first call **executes nothing**. Vurvey answers with a preview of exactly what would happen,
-plus a token bound to that exact call: that grant, that tool, those exact arguments. The second
-call carries the token back, and Vurvey rebuilds the binding from the arguments it is handed the
-second time. If anything changed in between, the binding does not match and the call is refused.
-The token is single use and cannot be spent in another workspace.
+The first call **executes nothing**. Vurvey answers with a preview naming the tool, the workspace
+and the call's short arguments, plus a token bound to that exact call: that grant, that tool, those
+exact arguments. The second call carries the token back, and Vurvey rebuilds the binding from the
+arguments it is handed the second time. If anything changed in between, the binding does not match
+and the call is refused. The token is single use and cannot be spent in another workspace.
+
+**The preview is a description of the call, not a copy of it.** Only short scalars come back
+verbatim. A string over 120 characters is shown as its shape, `<string:512 chars>`, and anything
+structured is shown as `<structured value, not shown>`. That is deliberate: the preview is built
+by the same reduction as Vurvey's audit record, so respondent free text and a report password
+cannot be copied into either by a write that carries them. The binding is over the **full**
+arguments, so the call that runs is byte for byte the call that was proposed, but if you want to
+know what is inside a value the preview did not print, ask Claude to say what it is about to send.
 
 **Here is the honest limit of that.** Both calls come from the same caller, so a model can call the
 preview and send the confirmation back in the same turn without you seeing either one. What the two

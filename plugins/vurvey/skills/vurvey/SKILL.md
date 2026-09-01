@@ -134,8 +134,8 @@ workflow may well be unable to create one.
 Vurvey previews a write before it will run one.
 
 1. Call the tool **without** `confirmation_token`. Nothing happens. Vurvey answers with a preview
-   of exactly what would run, plus a token bound to that grant, that tool, and those exact
-   arguments.
+   naming the tool, the workspace and the call's short arguments, plus a token bound to that grant,
+   that tool, and those exact arguments.
 2. **Show the user the preview and get their answer before you send the token back.**
 3. Call again with `confirmation_token` set to the value from step 1, verbatim, and the arguments
    unchanged. Different arguments produce a different binding and are refused.
@@ -143,10 +143,18 @@ Vurvey previews a write before it will run one.
 The token is single use and expires. Never invent one, and never carry one over to a different
 call.
 
-Step 2 is the whole point and it is yours to keep. Vurvey binds the two calls together, so a
-preview of one thing can never authorize a different thing, but it cannot tell whether a person saw
-the preview. Sending the token back in the same breath as receiving it turns a two-phase
-confirmation into a one-phase write. Do not do it.
+**The preview withholds most of what you sent.** Only short scalars come back verbatim: a string
+over 120 characters reads as `<string:N chars>`, anything structured reads as
+`<structured value, not shown>`, and an argument named for a password reads as `<redacted>`. So
+showing the preview alone can hide the entire substance of a write. Wherever the preview elides a
+value, **say in your own words what you put in it** before you ask, naming the workflow you drafted
+or the message you are about to send. A user approving `report=<string:4120 chars>` has approved
+nothing they could see.
+
+Step 2 is the whole point and it is yours to keep. Vurvey binds the two calls together over the
+full arguments, so a preview of one thing can never authorize a different thing, but it cannot tell
+whether a person saw the preview. Sending the token back in the same breath as receiving it turns a
+two-phase confirmation into a one-phase write. Do not do it.
 
 ### How to behave when writing
 
