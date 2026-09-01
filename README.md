@@ -234,9 +234,15 @@ and your Vurvey password never reaches it.
 
 ## Ending the connection
 
-**Workspace settings**, then **Connected apps**, in Vurvey. Every connection anyone in the
-workspace has approved is listed there, with who approved it, what it can do, and when it was last
-used. A workspace administrator can end any of them; if you are not one, ask yours.
+**Workspace settings**, then **Connected apps**, in Vurvey.
+
+You see the connections you approved yourself, with what each was approved for, when it was last
+used, and when it expires, and **you can end any of them yourself**. You do not need to be an
+administrator and you do not need to ask one. A workspace administrator sees every connection
+anyone in the workspace approved, and can end any of those.
+
+What a connection was approved for is a ceiling, not a promise: your role narrows it again on every
+request, so a connection can be listed with an ability your role no longer backs.
 
 Claude stops on its very next request to the workspace. There is no cache to wait out.
 
