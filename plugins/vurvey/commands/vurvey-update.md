@@ -16,9 +16,23 @@ Latest published version:
 curl -s https://raw.githubusercontent.com/Batterii/vurvey-claude-plugin/main/.claude-plugin/marketplace.json
 ```
 
-Read `plugins[0].version` from that JSON and compare it against the installed plugin version, which
-is in this plugin's own `.claude-plugin/plugin.json`. If you cannot determine the installed
-version, say so rather than guessing.
+Read `plugins[0].version` from that JSON.
+
+Installed version:
+
+```bash
+cat ~/.claude/plugins/installed_plugins.json
+```
+
+Read `version` from the entry under `plugins` whose key starts with `vurvey@`. That file is Claude
+Code's own record of what is installed, so it is the thing to compare against.
+
+Do **not** read the version out of this plugin's `.claude-plugin/plugin.json` instead. That is a
+second copy of the number sitting next to the marketplace's, and comparing one published file
+against the other reports whether the repository is internally consistent, not whether the user is
+behind.
+
+If either version is missing, say so rather than guessing.
 
 ## 2. If it is behind
 

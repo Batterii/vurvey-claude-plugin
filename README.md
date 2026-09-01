@@ -305,6 +305,16 @@ collaborators).
 
 Issues and PRs welcome here.
 
+The version lives in two files, `plugins/vurvey/.claude-plugin/plugin.json` and the marketplace
+entry in `.claude-plugin/marketplace.json`, and they have to agree. Bumping one and forgetting the
+other leaves an update nobody is ever offered. Check it before publishing:
+
+```bash
+claude plugin tag --dry-run plugins/vurvey
+```
+
+It fails with the two versions named when they disagree.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
