@@ -49,10 +49,12 @@ On Pro or Max:
 1. Go to **Customize**, then **Connectors**.
 2. Click **+**, then **Add custom connector**.
 3. Paste the address into the remote MCP server URL field.
-4. Leave **Advanced settings** alone. The OAuth client ID and secret there are for servers that
+4. Give it a name that says which workspace it is, such as `Vurvey - Acme Q1`. The address ends in
+   a workspace id, so the name is the only thing that will tell two Vurvey connectors apart later.
+5. Leave **Advanced settings** alone. The OAuth client ID and secret there are for servers that
    cannot register a client themselves. Vurvey can, so those fields stay empty.
-5. Click **Add**.
-6. In a conversation, turn it on with the **+** button, then **Connectors**.
+6. Click **Add**.
+7. In a conversation, turn it on with the **+** button, then **Connectors**.
 
 On Team or Enterprise an owner adds it once for the whole organization, under **Organization
 settings**, **Connectors**, **Add**, hover **Custom**, then **Web**. After that each member goes to
@@ -75,6 +77,22 @@ copied. Nothing else to set, no file to edit, no terminal command. To change it 
 what it is holding, run `/plugin manage` and open the Vurvey plugin's options.
 
 Then start a new session. Claude Code connects plugin servers at session start.
+
+#### Connecting more than one workspace
+
+An address names one workspace, so a second workspace means a second connector rather than a
+setting to change. In Claude Desktop and claude.ai, add another custom connector. In Claude Code,
+the plugin holds one address; add each further workspace by hand, under a name of your own
+choosing:
+
+```bash
+claude mcp add --transport http vurvey-acme "paste-the-other-workspace-address-here"
+```
+
+**Name each one after its workspace.** Three connectors all called `vurvey` are three entries in
+`/mcp` you cannot tell apart, because their addresses differ only in a workspace id. Each connector
+is approved separately in Vurvey and Claude sees each as its own set of tools. The plugin's skill
+covers all of them.
 
 ### 3. Approve it in Vurvey
 
@@ -217,7 +235,7 @@ Reconnecting means approving again from scratch.
 | The approval screen says your role does not allow anything that was asked for | Your role in that workspace has no ability the application requested | Ask a workspace administrator about your role |
 | Approving worked, then the browser failed to hand the code back | The local callback did not complete | Paste the full callback URL from your address bar into the prompt Claude Code shows |
 | Calls suddenly refused, nothing changed on your side | The connection was ended in Vurvey, or your membership or role changed | Check **Connected apps**, then approve again if you should still have it |
-| Answers are about the wrong workspace | The address you added belongs to another workspace | Copy the address again from the workspace you want, and add it again |
+| Answers are about the wrong workspace | The address you added belongs to another workspace | Add the workspace you want as a second connector under its own name, see [Connecting more than one workspace](#connecting-more-than-one-workspace) |
 | No Vurvey tools at all in Claude Code | The plugin's marketplace listing is cached | `/plugin marketplace update Batterii/vurvey-claude-plugin`, `/plugin update vurvey`, then a new session |
 
 To sign out of the connector on the client side, use **Clear authentication** in Claude Code's

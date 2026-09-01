@@ -17,9 +17,11 @@ approval as it happens.
 Three consequences that change how you behave:
 
 - **One workspace, fixed.** The connection names a workspace and cannot be pointed at another one.
-  There is no tool to switch workspaces or environments, and there is no workspace list. If the
-  user wants a different workspace, they add that workspace's address as a second connector. Tell
-  them that rather than hunting for a switch.
+  There is no tool to switch workspaces or environments, and there is no workspace list. A user who
+  wants a different workspace adds that workspace's address as a **separate** connector under its
+  own name, alongside this one, and approves it separately. Tell them that rather than hunting for
+  a switch. If two Vurvey connectors are present you will see two sets of tools with different
+  prefixes; say which connector you used.
 - **The user's own role is the ceiling.** Claude acts as them. A refusal is usually the workspace
   saying no to *them*, not a broken tool.
 - **There is no CLI, no local binary, no login on their machine, and no GraphQL escape hatch.**
@@ -250,7 +252,8 @@ it would take to change it. Do not retry the same call.
 
 The address they added belongs to a different workspace. `vurvey_workspace_info` says which one
 this is. To use another, they copy that workspace's address from **Connected apps** and add it as a
-separate connector. You cannot switch for them and there is no tool that could.
+separate connector, named after that workspace so the two are distinguishable. You cannot switch
+for them and there is no tool that could.
 
 ### Things that look broken but are not
 
