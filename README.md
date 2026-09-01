@@ -120,10 +120,10 @@ Then run `/mcp` — you should see `vurvey` connected. Or run `/vurvey-login` an
 **Claude Desktop, Cursor, Codex** — the CLI writes the config for you:
 
 ```bash
-vurvey mcp install claude-desktop    # or: cursor | codex | all
+vurvey mcp install claude-desktop --read-only    # or: cursor | codex | all
 ```
 
-Restart the app afterward. This finds the right config file, uses an absolute path to the binary (GUI apps often can't see your shell's `$PATH`), and leaves any other MCP servers you have alone.
+Restart the app afterward. This finds the right config file, uses an absolute path to the binary (GUI apps often can't see your shell's `$PATH`), and leaves any other MCP servers you have alone. `--read-only` is what gives those clients the same posture the plugin ships; without it they run at the CLI's default `advanced` tier, which allows writes.
 
 Per-client detail, multi-profile setups, and troubleshooting: [`docs/install.md`](docs/install.md).
 
@@ -255,7 +255,11 @@ The plugin ships at the **core** tier, pinned read-only. Writing and deleting ar
 
 Counts measured against `vurvey` v0.19.2 by sending `tools/list` to `vurvey mcp serve`. Add one to each against an environment that permits GraphQL introspection, which registers `vurvey_graphql_introspect` and makes it 54 / 83 / 87. Staging permits it; production and experimental do not.
 
-**`advanced` is the CLI's own default, so this pin is the only thing making the plugin read-only.** Any client wired up with `vurvey mcp install` (Claude Desktop, Cursor, Codex) gets no `env` block and therefore runs at `advanced`. Add the block yourself if you want those read-only too.
+**`advanced` is the CLI's own default, so this pin is the only thing making the plugin read-only.** A client wired up with a bare `vurvey mcp install` (Claude Desktop, Cursor, Codex) gets no `env` block and therefore runs at `advanced`. Pass `--read-only` to get the same posture there:
+
+```bash
+vurvey mcp install claude-desktop --read-only
+```
 
 **Why deletes are off.** Everything at `advanced` is recoverable — a workflow you didn't want can be paused, an edit can be re-edited. Deletes aren't. Since Claude is acting on an interpretation of what you asked, the one class of mistake worth a speed bump is the irreversible one. Turn it on if you need it; it's one line.
 

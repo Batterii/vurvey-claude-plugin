@@ -10,10 +10,12 @@ For users on `vurvey` **v0.19.1 or newer**, this is the entire setup for Claude 
 brew install Batterii/vurvey/vurvey
 vurvey login
 vurvey workspaces list && vurvey workspaces use <id>   # login does not pick one
-vurvey mcp install claude-desktop    # or: cursor | codex | all
+vurvey mcp install claude-desktop --read-only    # or: cursor | codex | all
 ```
 
-That's it. `vurvey mcp install` writes the correct MCP server entry into the client's config file (JSON for Claude Desktop/Cursor, TOML for Codex), with an absolute path to the installed binary so GUI apps find it even with stripped `$PATH`. Existing MCP servers in the same file are preserved. It writes no tier, so those clients run at the CLI default, which is `advanced`: reads plus writes. See [step 2b](#2b-select-a-workspace) for why the workspace command is not optional.
+That's it. `vurvey mcp install` writes the correct MCP server entry into the client's config file (JSON for Claude Desktop/Cursor, TOML for Codex), with an absolute path to the installed binary so GUI apps find it even with stripped `$PATH`. Existing MCP servers in the same file are preserved. See [step 2b](#2b-select-a-workspace) for why the workspace command is not optional.
+
+**Do not drop `--read-only`.** Without it the command writes no `env` block at all, and those clients then run at the CLI's own default tier, which is `advanced`: reads plus create, update, run, and arbitrary non-delete GraphQL mutations. `--read-only` writes `VURVEY_MCP_READ_ONLY=1` into the entry, which is what the Claude Code plugin pins and is the posture the rest of these docs assume.
 
 **Claude Code users** still need the first three commands (the binary, the login, the workspace). Only the last is different: install the plugin instead of running `vurvey mcp install`:
 
@@ -45,7 +47,7 @@ All clients share the same prerequisites:
 1. **Install the CLI binary**
 2. **Authenticate once** with `vurvey login`, then **select a workspace** with `vurvey workspaces use`
 
-Then either run `vurvey mcp install <client>` to auto-configure your client, or follow the per-client section for hand-editing the config yourself.
+Then either run `vurvey mcp install <client> --read-only` to auto-configure your client, or follow the per-client section for hand-editing the config yourself.
 
 ---
 
@@ -255,10 +257,10 @@ Or `/plugin marketplace update Batterii/vurvey-claude-plugin` to refresh the mar
 **Easiest path (v0.9.0+):**
 
 ```bash
-vurvey mcp install claude-desktop
+vurvey mcp install claude-desktop --read-only
 ```
 
-This writes the config for you with an absolute binary path, so you can skip the rest of this section unless you want to customize. Restart Claude Desktop afterward.
+This writes the config for you with an absolute binary path, so you can skip the rest of this section unless you want to customize. Restart Claude Desktop afterward. Drop `--read-only` and the entry gets no `env` block, which means the CLI's default `advanced` tier: reads plus writes.
 
 **Hand-edit path:** if you prefer to write the config manually (or you're on a pre-v0.9.0 CLI), keep reading.
 
@@ -355,10 +357,10 @@ Chat as usual:
 **Easiest path (v0.9.0+):**
 
 ```bash
-vurvey mcp install cursor
+vurvey mcp install cursor --read-only
 ```
 
-Writes `~/.cursor/mcp.json` with an absolute binary path. Skip the rest of this section unless you want per-project config or need to customize.
+Writes `~/.cursor/mcp.json` with an absolute binary path. Skip the rest of this section unless you want per-project config or need to customize. Drop `--read-only` and the entry gets no `env` block, which means the CLI's default `advanced` tier: reads plus writes.
 
 **Hand-edit path:** Cursor supports MCP servers natively via its own `mcp.json` file — per-project or per-user (global).
 
@@ -410,10 +412,10 @@ Same issues as Claude Desktop generally apply. If Cursor's MCP panel shows a con
 **Easiest path (v0.9.0+):**
 
 ```bash
-vurvey mcp install codex
+vurvey mcp install codex --read-only
 ```
 
-Writes `~/.codex/config.toml` for you with an absolute binary path. Skip the rest of this section unless you want to customize.
+Writes `~/.codex/config.toml` for you with an absolute binary path. Skip the rest of this section unless you want to customize. Drop `--read-only` and the entry gets no `env` block, which means the CLI's default `advanced` tier: reads plus writes.
 
 **Hand-edit path:** Codex CLI supports MCP servers via a TOML config — slightly different shape from Claude Desktop / Cursor (which use JSON), but the same fields underneath.
 
