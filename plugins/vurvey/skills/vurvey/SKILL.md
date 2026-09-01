@@ -44,6 +44,13 @@ If a tool this guide names is absent, do not invent a workaround and do not tell
 install is broken. Either the user did not approve the ability it needs, or their role cannot back
 it. Say which, and point them at **Workspace settings**, **Connected apps** in Vurvey.
 
+The other direction has exactly one exception, so it is worth naming here rather than leaving you
+to find it later. A tool in your list that this guide does not name is normally just newer than the
+guide, and using it is fine. `vurvey_capabilities_quick_start` is the one that is not: it is served,
+this guide leaves it out on purpose, and it cannot finish over this connector however confident its
+own description sounds. **One approval covers one call**, under **Changing things**, says why and
+what to do instead.
+
 ## Reading
 
 ### Identity and workspace
