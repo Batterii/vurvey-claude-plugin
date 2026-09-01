@@ -122,7 +122,7 @@ which is why the list below of what is impossible is short and absolute.
 | Ability | What it means |
 |---|---|
 | **Read this workspace** | Claude can read what your role can already see here, which may include campaigns, survey responses, datasets, agents and workflows. |
-| **Create and edit content here** | Claude can draft and change workflows and capabilities here, along with their schedules, triggers and variables, and send messages in Vurvey chat. Campaigns, agents and datasets are read-only through the connector, however editable they are in the web app. |
+| **Create and edit content here** | Claude can draft and change workflows and capabilities here, along with their schedules, triggers and variables, and send messages in Vurvey chat. It can also turn on sharing for a workflow run's report, which is the one thing on this list that reaches outside the workspace. Campaigns, agents and datasets are read-only through the connector, however editable they are in the web app. |
 | **Run workflows that already exist here** | Claude can run a workflow this workspace already has and read what it produces. Running is separate from creating: this ability alone cannot make a new workflow. |
 
 **Your own role is the ceiling.** Claude acts as you and never beyond what your role in this
@@ -132,6 +132,11 @@ to the new ceiling on its very next request, with no waiting for a token to expi
 
 **Approving in one workspace grants nothing in any other.** The address names one workspace, the
 access token is bound to that exact address, and the token is refused anywhere else.
+
+**One ability publishes.** Turning on sharing for a workflow run's report makes that report
+readable from a link outside the workspace, and doing it without supplying a password clears any
+password the report already had. Everything else on the list stays inside Vurvey. If you grant
+create-and-edit, this comes with it.
 
 ### What is not possible at all
 

@@ -124,12 +124,16 @@ be unable to create one.
 tool, so those are read-only through it whatever the web app allows. If the user asks for one, say
 it has to happen in the Vurvey web app rather than looking for a tool that is not in the list.
 
+**One of these publishes.** Create and edit content also carries
+`vurvey_workflows_report_share`, which makes a run's report readable outside the workspace. See
+**How to behave when writing** below before you reach for it.
+
 | Intent | Tools |
 |---|---|
 | Build a workflow | `vurvey_workflows_create`, `vurvey_workflows_create_auto`, `vurvey_workflows_create_from_template`, `vurvey_workflows_duplicate`, `vurvey_workflows_clone_from_history` |
 | Change a workflow | `vurvey_workflows_update` |
 | Control a run | `vurvey_workflows_run`, `vurvey_workflows_pause`, `vurvey_workflows_resume`, `vurvey_workflows_cancel` |
-| Reports | `vurvey_workflows_report_regenerate`, `vurvey_workflows_report_update`, `vurvey_workflows_report_share` |
+| Reports | `vurvey_workflows_report_regenerate`, `vurvey_workflows_report_update`, `vurvey_workflows_report_share` (**publishes**, see below) |
 | Automate | `vurvey_workflow_schedules_create`, `vurvey_workflow_triggers_add`, `vurvey_workflow_triggers_update`, `vurvey_workflow_variables_create`, `vurvey_workflow_variables_activate` |
 | Capabilities | `vurvey_capabilities_create`, `vurvey_capabilities_update`, `vurvey_capabilities_activate`, `vurvey_capabilities_quick_start`, `vurvey_capabilities_deploy_from_blueprint`, `vurvey_capabilities_add_workflow`, `vurvey_capabilities_run_workflow`, `vurvey_capabilities_set_schedule` |
 | Chat | `vurvey_chat_send` |
@@ -163,6 +167,12 @@ two-phase confirmation into a one-phase write. Do not do it.
 
 ### How to behave when writing
 
+- **`vurvey_workflows_report_share` leaves the workspace. Say so out loud.** With `is_shared` true
+  it makes that run's report readable from a link outside Vurvey, and calling it without a
+  `password` clears any password the report already had. Tell the user the report is about to
+  become readable outside the workspace, and whether a password will be kept, **before** you send
+  the confirmation token. It is the one write on this list whose effect is visible to people who
+  are not in the workspace.
 - **Confirm the target before acting.** Resolve the id first (`vurvey_surveys_find_by_name`,
   `vurvey_workflows_list`) and name what you are about to change.
 - **Say what you are about to do** in one line before a create, update or run, especially when the
