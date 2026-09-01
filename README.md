@@ -10,6 +10,11 @@ There is no Vurvey software to install: no binary, no package manager, no login 
 Vurvey hosts the connector. You copy one address out of Vurvey, add it to Claude, and approve it
 once.
 
+> **Not switched on yet.** Vurvey is not yet serving the hosted connector, so **Workspace
+> settings**, **Connected apps** currently says connecting Claude is not available in this Vurvey
+> environment, and there is no address to copy. Read that page first: everything below is what you
+> will do once your workspace has one.
+
 ---
 
 ## Before you start
