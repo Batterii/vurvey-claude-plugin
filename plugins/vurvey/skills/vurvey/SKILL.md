@@ -135,7 +135,7 @@ it has to happen in the Vurvey web app rather than looking for a tool that is no
 | Control a run | `vurvey_workflows_run`, `vurvey_workflows_pause`, `vurvey_workflows_resume`, `vurvey_workflows_cancel` |
 | Reports | `vurvey_workflows_report_regenerate`, `vurvey_workflows_report_update`, `vurvey_workflows_report_share` (**publishes**, see below) |
 | Automate | `vurvey_workflow_schedules_create`, `vurvey_workflow_triggers_add`, `vurvey_workflow_triggers_update`, `vurvey_workflow_variables_create`, `vurvey_workflow_variables_activate` |
-| Capabilities | `vurvey_capabilities_create`, `vurvey_capabilities_update`, `vurvey_capabilities_activate`, `vurvey_capabilities_quick_start`, `vurvey_capabilities_deploy_from_blueprint`, `vurvey_capabilities_add_workflow`, `vurvey_capabilities_run_workflow`, `vurvey_capabilities_set_schedule` |
+| Capabilities | `vurvey_capabilities_create`, `vurvey_capabilities_update`, `vurvey_capabilities_deploy_from_blueprint`, `vurvey_capabilities_set_schedule`, `vurvey_capabilities_activate`, `vurvey_capabilities_add_workflow`, `vurvey_capabilities_run_workflow` |
 | Chat | `vurvey_chat_send` |
 
 ### Every write takes two calls
@@ -164,6 +164,27 @@ Step 2 is the whole point and it is yours to keep. Vurvey binds the two calls to
 full arguments, so a preview of one thing can never authorize a different thing, but it cannot tell
 whether a person saw the preview. Sending the token back in the same breath as receiving it turns a
 two-phase confirmation into a one-phase write. Do not do it.
+
+### One approval covers one call
+
+An approval names one tool and one set of arguments. The call it names spends it, and any other
+call that presents it is refused. So a tool that does several writes inside a single invocation
+cannot get past its first one here, whatever its own description promises.
+
+`vurvey_capabilities_quick_start` is that tool. It deploys a blueprint, schedules it and activates
+it in one invocation, and the steps after the deploy present the approval that was bound to the
+deploy, so Vurvey refuses them. The best it reaches is a capability left sitting in draft, neither
+scheduled nor running, handed back as a partial result. Given a blueprint name rather than an id it
+does not reach even that: resolving the name is a read, and a read carrying an approval is refused
+outright, so nothing is deployed at all. Do the three moves yourself instead, each with its own
+preview and its own approval:
+
+1. `vurvey_capabilities_deploy_from_blueprint`
+2. `vurvey_capabilities_set_schedule`
+3. `vurvey_capabilities_activate`
+
+This is the one place where seeing a tool in the list is not enough. If the user asks for the quick
+path, give them these three and say each one needs approving on its own.
 
 ### How to behave when writing
 
