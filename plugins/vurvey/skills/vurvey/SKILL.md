@@ -64,7 +64,7 @@ The UI calls them Campaigns. The tools call them surveys. Use the user's word wh
 | `vurvey_surveys_get` | One campaign by id, with its questions and response count. |
 | `vurvey_surveys_find_by_name` | Substring resolver. One call instead of list-then-filter. Prefer it when the user names a campaign. |
 | `vurvey_questions_list` / `vurvey_questions_get` | Questions in a campaign; one question with its choices. |
-| `vurvey_questions_answers` | The route to respondent free text. Give it the question id and the campaign id. It returns the question definition plus the campaign's responses with their answers, each tagged with the question it belongs to, so pick out the ones matching the question you asked about. |
+| `vurvey_questions_answers` | The route to respondent free text. Give it the question id and the campaign id. It returns the question, the exact per-choice distribution, a `coverage` block and `verbatims` already narrowed to that question, so there is nothing for you to filter out. **It reads 25 responses by default:** `coverage.responsesRemaining` says how many it did not read, and the cursor pages the rest. No sentiment is returned, because the API computes none for a question; characterize the verbatims yourself and say the characterization is yours. |
 | `vurvey_answers_get` | One answer by id. |
 
 ### Responses
@@ -225,6 +225,11 @@ pull a lot of it.
 `vurvey_responses_export` is the wrong tool for this: it returns response records without their
 answers, so it tells you how many people replied and when, not what they said. Summarize what you
 read, and never fabricate a quote.
+
+**One call is 25 responses, not the campaign.** Before you summarize, read
+`coverage.responsesRemaining`. If it is above zero, either page with the cursor until it reaches
+zero or say plainly that you read a sample and how big it was. A 412 response campaign summarized
+from one page is a wrong answer that reads exactly like a right one.
 
 **"What did people say about <topic>?"** to `vurvey_surveys_get` for the question list, then
 `vurvey_questions_answers` on the questions that could plausibly carry it, passing both the question
