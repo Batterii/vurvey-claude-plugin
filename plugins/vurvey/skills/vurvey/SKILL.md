@@ -115,9 +115,14 @@ Some connections carry abilities beyond reading. Whether this one does is visibl
 not something to assume in either direction.
 
 Two abilities cover everything below. **Create and edit content** covers drafting and changing
-campaigns, agents, datasets and workflows. **Run workflows that already exist** covers starting,
-steering and regenerating a run. They are granted separately, so a connection that can run a
-workflow may well be unable to create one.
+workflows and capabilities, their schedules, triggers and variables, a run's report, and sending a
+Vurvey chat message. **Run workflows that already exist** covers starting, steering and
+regenerating a run. They are granted separately, so a connection that can run a workflow may well
+be unable to create one.
+
+**Nothing here creates or edits a campaign, an agent or a dataset.** The connector serves no such
+tool, so those are read-only through it whatever the web app allows. If the user asks for one, say
+it has to happen in the Vurvey web app rather than looking for a tool that is not in the list.
 
 | Intent | Tools |
 |---|---|

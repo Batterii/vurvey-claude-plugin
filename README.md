@@ -122,7 +122,7 @@ which is why the list below of what is impossible is short and absolute.
 | Ability | What it means |
 |---|---|
 | **Read this workspace** | Claude can read what your role can already see here, which may include campaigns, survey responses, datasets, agents and workflows. |
-| **Create and edit content here** | Claude can draft and change campaigns, agents, datasets and workflows in this workspace. |
+| **Create and edit content here** | Claude can draft and change workflows and capabilities here, along with their schedules, triggers and variables, and send messages in Vurvey chat. Campaigns, agents and datasets are read-only through the connector, however editable they are in the web app. |
 | **Run workflows that already exist here** | Claude can run a workflow this workspace already has and read what it produces. Running is separate from creating: this ability alone cannot make a new workflow. |
 
 **Your own role is the ceiling.** Claude acts as you and never beyond what your role in this
