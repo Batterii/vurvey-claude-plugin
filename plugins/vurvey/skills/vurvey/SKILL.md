@@ -352,3 +352,8 @@ their account is broken on the strength of a tool error.
   re-authorizes.
 - **No file uploads.** Direct users to the web app for CSV and media.
 - **No sign-in.** Approving happens in the user's browser, on Vurvey's own pages.
+- **No facet, mold, or population authoring.** Those are staff tools on the admin console
+  and the local `vurvey` CLI (`vurvey whoami --capabilities`, then `vurvey pm …`). This
+  connector has no such tools. If a Vurvey staff member asks to import YAML or mint a
+  population here, send them to the CLI rather than inventing a workaround. Customer
+  workspace users stay in this connector and the Vurvey web app.
