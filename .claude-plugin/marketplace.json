@@ -10,7 +10,7 @@
     {
       "name": "vurvey",
       "description": "Connect Claude to a Vurvey workspace through Vurvey's hosted connector. Paste the address from workspace settings, approve it in Vurvey, and ask about campaigns, responses, datasets, agents and workflows. No binary to install, and the connection is ended from Vurvey. Vurvey is not serving the connector yet, so check Workspace settings, Connected apps for an address before you install.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": {
         "name": "Batterii",
         "email": "engineering@batterii.com"

@@ -1,7 +1,7 @@
 {
   "name": "vurvey",
   "description": "Connect Claude to a Vurvey workspace. Hosted connector: paste your workspace address, approve it in Vurvey, and ask about your campaigns, responses, agents and workflows. Nothing to install.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": {
     "name": "Batterii",
     "email": "engineering@batterii.com"
